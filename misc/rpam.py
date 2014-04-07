@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+# <nbformat>3.0</nbformat>
+
+# <codecell>
+
 import math
 import numpy as np
 import random as rnd
@@ -58,15 +63,18 @@ def rpam(n_photon):
                 found = True
             counter += 1
     N = np.zeros(4)
-    for nn in range(0,int(math.floor(n_m))):
+    for nn in range(1,int(math.floor(n_m))):
         for mm in range(0,3):
             if n_p[nn] == mm:
                 N[mm] += 1
 
 
-    return N
+    return n_p
 
 nphotons = 980
 N = rpam(nphotons)
 print 'our result: ', N
+
+# <codecell>
+
 
