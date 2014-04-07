@@ -8,11 +8,18 @@ from pycuda.compiler import SourceModule
 
 from neurokernel.LPU.utils.simpleio import *
 
+# E0 -> E_Na
+# E1 -> E_K
+# E2 -> E_L
+# g0 -> g_Na
+# g1 -> g_K
+# g2 -> g_L
+
 cuda_src = """
 #define NNEU %(nneu)d
-#define E0 -12
-#define E1 115
-#define E2 10.613
+#define E0 -77
+#define E1 50
+#define E2 -54.387
 #define g0 36
 #define g1 120
 #define g2 0.3
@@ -20,8 +27,8 @@ cuda_src = """
 __global__ void hodgkin_huxley(
     int neu_num,
     %(type)s dt,
-    int *spk,
     %(type)s *V,
+    %(type)s *Vinit,
     %(type)s *I,
     %(type)s *X0,
     %(type)s *X1,
@@ -33,43 +40,33 @@ __global__ void hodgkin_huxley(
     %(type)s v, i_ext, x0, x1, x2;
 
     if( nid < neu_num ){
-        v = V[nid];
+        v = Vinit[nid];
         i_ext = I[nid];
         x0 = X0[nid];
         x1 = X1[nid];
         x2 = X2[nid];
 
+        v = v + ( ( i_ext - (g1*pow(x1,3)*x2*(v-50)) - (g0*pow(x0, 4)*(v+77)) - (g2*(v+54.387))) * dt);
 
-        %(type)s a,b,tau, x_0;
-        a = (10-v)/(100*exp( (10-v)/10) - 1 );
-        b = 0.125 * exp(v/80);
+        %(type)s a;
+        a = exp(-(v+55)/10) - 1;
+        if (a == 0){
+            x0 = x0+((((1 - x0) * 0.1) - (x0 * 0.125 * exp(-(v+65)/80))) * dt);
+        } else {
+            x0 = x0+(( (1-x0) * (-0.01*(v+55)/a) - (x0 * (0.125 * exp(-(v+65)/80))) )*dt);
+        }
 
-        tau = 1/(a+b);
-        x_0 = a*tau;
-        x0 = (1 - dt/tau)*x0 + dt/tau*x_0;
+        a = exp(-(v+40)/10)-1;
+        if (a == 0){
+            x1 = x1 + (( (1-x1) - (x1*(4*exp(-(v+65)/18)))) * dt);
+        } else {
+            x1 = x1 + (( ((1-x1) * (-0.1*(v+40)/a)) - (x1 * (4 * exp(-(v+65)/18))) ) *dt);
+        }
 
-        a = (25-v)/(10*exp( (25-v)/10) - 1 );
-        b = 4 * exp(-v/18);
+        x2 = x2 + (( ((1 - x2)* 0.07*exp(-(v+65)/20)) - (x2 / (exp(-(v+35)/10) + 1)) ) * dt);
 
-        tau = 1/(a+b);
-        x_0 = a*tau;
-        x1 = (1 - dt/tau)*x1 + dt/tau*x_0;
 
-        a = 0.07 * exp(-v/20);
-        b = 1 / (exp((30 - v)/10) + 1);
-
-        tau = 1/(a+b);
-        x_0 = a*tau;
-        x2 = (1 - dt/tau)*x2 + dt/tau*x_0;
-
-        %(type)s i0, i1, i2;
-
-        i0 = g0 * pow(x0,4) * (v-E0);
-        i1 = g1 * pow(x1,3) * x2 * (v-E1);
-        i2 = g2 * (v-E2);
-
-        v = v + dt*(i_ext - i0 - i1 - i2);
-
+        Vinit[nid] = v;
         V[nid] = v;
         X0[nid] = x0;
         X1[nid] = x1;
@@ -80,17 +77,18 @@ __global__ void hodgkin_huxley(
 """
 
 class HodgkinHuxley(BaseNeuron):
-    def __init__(self, n_dict, spk, dt, debug=False, LPU_id=None):
+    def __init__(self, n_dict, V, dt, debug=False, LPU_id=None):
         self.num_neurons = len(n_dict['id'])
         self.dt = np.double(dt)
         self.steps = 1
         self.debug = debug
         self.LPU_id = LPU_id
-        self.V = garray.to_gpu( np.asarray( n_dict['V'], dtype=np.float64 ))
+
+        self.V = V
+        self.Vinit = garray.to_gpu( np.asarray( n_dict['Vinit'], dtype=np.float64 ))
         self.X0 = garray.to_gpu( np.asarray( n_dict['X0'], dtype=np.float64 ))
         self.X1 = garray.to_gpu( np.asarray( n_dict['X1'], dtype=np.float64 ))
         self.X2 = garray.to_gpu( np.asarray( n_dict['X2'], dtype=np.float64 ))
-        self.spk = spk
         _num_dendrite_cond = np.asarray([n_dict['num_dendrites_cond'][i] \
                                     for i in range(self.num_neurons)], \
                                     dtype=np.int32).flatten()
@@ -114,6 +112,7 @@ class HodgkinHuxley(BaseNeuron):
         self.I = garray.zeros(self.num_neurons, np.double)
         self._update_I_cond = self._get_update_I_cond_func()
         self._update_I_non_cond = self._get_update_I_non_cond_func()
+        cuda.memcpy_htod(int(self.V), np.asarray(n_dict['initV'], dtype=np.double))
         self.update = self.get_gpu_kernel()
         if self.debug:
             if self.LPU_id is None:
@@ -132,10 +131,10 @@ class HodgkinHuxley(BaseNeuron):
             self.gpu_grid,\
             self.gpu_block,\
             st,\
+            self.V,\
             self.num_neurons,\
-            self.dt,\
-            self.spk,\
-            self.V.gpudata,\
+            self.dt * 1000,\
+            self.Vinit.gpudata,\
             self.I.gpudata,\
             self.X0.gpudata,\
             self.X1.gpudata,\
@@ -156,8 +155,8 @@ class HodgkinHuxley(BaseNeuron):
         func = mod.get_function("hodgkin_huxley")
         func.prepare( [ np.int32, # neu_num
                         np.float64, # dt
-                        np.intp, # spk array
                         np.intp, # V array
+                        np.intp, # Vinit array
                         np.intp, # I array
                         np.intp, # X0 array
                         np.intp, # X1 array
