@@ -8,7 +8,9 @@ import numpy as np
 import random as rnd
 n_micro = 30000.0
 
-def rpam(n_photon):
+def rpam(n_photon, seed=rnd.randint(1,1000)):
+    print seed
+    rnd.seed(seed)
     if(n_photon >= 1000):
         print 'input to rpam must be less than 1000, input is ', n_photon
         n_photon = 999
@@ -52,7 +54,6 @@ def rpam(n_photon):
         q[ii] = sum(p[1:ii])/(sum(p) - p[0])
 
     n_p = np.zeros(int(n_micro))
-    rnd.seed(5) # FIXME: stick to a hardcoded seed for now
     for nn in range(1,int(math.floor(n_m))):
         r = rnd.random()
         found = False
@@ -63,18 +64,18 @@ def rpam(n_photon):
                 found = True
             counter += 1
     N = np.zeros(4)
-    for nn in range(1,int(math.floor(n_m))):
+    for nn in range(0,int(math.floor(n_m))):
         for mm in range(0,3):
             if n_p[nn] == mm:
                 N[mm] += 1
 
 
     return n_p
-
+'''
 nphotons = 980
 N = rpam(nphotons)
 print 'our result: ', N
-
+'''
 # <codecell>
 
 
