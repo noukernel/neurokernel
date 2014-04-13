@@ -28,7 +28,6 @@ __global__ void hodgkin_huxley(
     int neu_num,
     %(type)s dt,
     %(type)s *V,
-    %(type)s *Vinit,
     %(type)s *I,
     %(type)s *X0,
     %(type)s *X1,
@@ -40,7 +39,7 @@ __global__ void hodgkin_huxley(
     %(type)s v, i_ext, x0, x1, x2;
 
     if( nid < neu_num ){
-        v = Vinit[nid];
+        v = V[nid];
         i_ext = I[nid];
         x0 = X0[nid];
         x1 = X1[nid];
@@ -65,8 +64,6 @@ __global__ void hodgkin_huxley(
 
         x2 = x2 + (( ((1 - x2)* 0.07*exp(-(v+65)/20)) - (x2 / (exp(-(v+35)/10) + 1)) ) * dt);
 
-
-        Vinit[nid] = v;
         V[nid] = v;
         X0[nid] = x0;
         X1[nid] = x1;
@@ -80,12 +77,12 @@ class HodgkinHuxley(BaseNeuron):
     def __init__(self, n_dict, V, dt, debug=False, LPU_id=None):
         self.num_neurons = len(n_dict['id'])
         self.dt = np.double(dt)
-        self.steps = 1
+        self.steps = max(int(round(dt / 1e-5)), 1)
         self.debug = debug
         self.LPU_id = LPU_id
+        self.ddt = dt / self.steps
 
         self.V = V
-        self.Vinit = garray.to_gpu( np.asarray( n_dict['Vinit'], dtype=np.float64 ))
         self.X0 = garray.to_gpu( np.asarray( n_dict['X0'], dtype=np.float64 ))
         self.X1 = garray.to_gpu( np.asarray( n_dict['X1'], dtype=np.float64 ))
         self.X2 = garray.to_gpu( np.asarray( n_dict['X2'], dtype=np.float64 ))
@@ -112,7 +109,7 @@ class HodgkinHuxley(BaseNeuron):
         self.I = garray.zeros(self.num_neurons, np.double)
         self._update_I_cond = self._get_update_I_cond_func()
         self._update_I_non_cond = self._get_update_I_non_cond_func()
-        cuda.memcpy_htod(int(self.V), np.asarray(n_dict['initV'], dtype=np.double))
+        cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
         self.update = self.get_gpu_kernel()
         if self.debug:
             if self.LPU_id is None:
@@ -133,8 +130,7 @@ class HodgkinHuxley(BaseNeuron):
             st,\
             self.V,\
             self.num_neurons,\
-            self.dt * 1000,\
-            self.Vinit.gpudata,\
+            self.ddt * 1000,\
             self.I.gpudata,\
             self.X0.gpudata,\
             self.X1.gpudata,\
@@ -156,7 +152,6 @@ class HodgkinHuxley(BaseNeuron):
         func.prepare( [ np.int32, # neu_num
                         np.float64, # dt
                         np.intp, # V array
-                        np.intp, # Vinit array
                         np.intp, # I array
                         np.intp, # X0 array
                         np.intp, # X1 array
