@@ -1,5 +1,5 @@
 %% Random Photon Absorption Model
-%{
+
 dt = 1e-3;
 t = 0:dt:1;
 tend = max(t);
@@ -10,7 +10,7 @@ Nphoton = 1000;
 for i = 1:length(t)
     NT(:,i) = RPAM(Nphoton);
 end
-%}
+
 
 %% Initialize Parameters
 
@@ -61,11 +61,10 @@ tt = 1;
 mu = 1;                     % Reaction to perform each dt
 av = zeros(1,7);            % For determining mu
 
-Z = [X{1}(1), X{2}(1), X{3}(1), X{4}(1), X{5}(1), X{6}(1), X{7}(1),];
-Ca = .001;
+
 [Zn, zn] = Signal_Cascade(Z,0,1,.001,h,c);
     
-%{    
+% Working on this part now    
 for mv = 1:30000
     
     while tt <= tend
