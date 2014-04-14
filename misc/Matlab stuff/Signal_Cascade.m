@@ -1,4 +1,4 @@
-function [X, t, abs] = Signal_Cascade(X_old, t, i, T_ph, N_ph, h, c)
+function [X, t, abs] = Signal_Cascade(X_old, t, T_ph, N_ph, h, c)
 
 mu = 1;                     % Reaction to perform each dt
 av = zeros(1,7);            % For determining mu
@@ -34,9 +34,9 @@ as = dot(h,c);
 dt = (1/(la + as)) * log(1/r1);
     
 % If our random timestep includes a photon...
-if ((t + dt) > T_ph(i))
-    t = T_ph(i);
-    X(1) = X(1) + N_ph(i);
+if ((t + dt) > T_ph)
+    t = T_ph;
+    X(1) = X(1) + N_ph;
     abs = true;
 else
     t = t + dt;

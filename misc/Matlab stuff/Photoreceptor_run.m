@@ -1,28 +1,31 @@
 %% Random Photon Absorption Model
-%{
-dt = 1e-3;
-t = 0:dt:1;
+
+dt = 1;
+t = 0:dt:1; % Only doing 1 'time step'
 tend = max(t);
 
 NT = zeros(30000,length(t));
 Nphoton = 1000;
 
-for i = 1:length(t)
-    NT(:,i) = RPAM(Nphoton);
-end
+
+NT(:,1) = RPAM(Nphoton);
+
+% Should we store separate I_in per microvillus? No idea...
+%I_in = zeros(30000,1);
 
 T_ph = cell(30000,1);
 for i = 1:30000
     T_ph{i} = cell(2,1);
     
-    for n = 1:length(t)
-        if NT(i,n) ~= 0
-            T_ph{i}{1} = [T_ph{i}{1} n*dt];
-            T_ph{i}{2} = [T_ph{i}{2} NT(i,n)];
-        end
+    if NT(i,1) ~= 0
+        T_ph{i}{1} = dt;
+        T_ph{i}{2} = NT(i,1);
+    else
+        T_ph{i}{1} = 0;
+        T_ph{i}{2} = 0;
     end
 end
-%}
+
 
 %% Initialize Parameters
 
@@ -36,6 +39,8 @@ parameters;
 %% Initialization of Matrices
 
 X = cell(7,1);
+
+for ii = 1:30000
 
 for m = 1:7
     X{m} = zeros(1,1);
@@ -70,7 +75,7 @@ I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2*exp(V_m*F/R/T)));
 I_Canet = I_Ca - 2*I_NaCa;
 
 i = 1;          % X iterator (how many times Signal_Cascade was called)
-ii = 1;         % T_ph iterator (next photon absorption)
+%ii = 1;         % T_ph iterator (next photon absorption)
 tt = 0;         % Timekeeper
 
 %For one microvillus
@@ -78,13 +83,16 @@ while tt < tend
     
     X_old = [X{1}(i), X{2}(i), X{3}(i), X{4}(i), X{5}(i), X{6}(i), X{7}(i)];
     
-    [Z, t_new, abs] = Signal_Cascade(X_old, tt, ii, T_ph{ii}{1}, T_ph{ii}{2}, h, c);
+    [Z, t_new, abs] = Signal_Cascade(X_old, tt, T_ph{ii}{1}, T_ph{ii}{2}, h, c);
     
-    tt = t_new;
+    tt = tt + 1;%t_new;
     
+    % No idea, but won't matter for now
+    %{
     if abs == true
         ii = ii + 1;
     end
+    %}
     
     i = i + 1;
     
@@ -115,10 +123,7 @@ while tt < tend
     Gamma_PLCstar*(1+h_PLCstar*fn); Gamma_Dstar*(1+h_Dstar*fn); Kappa_Tstar*(1+h_TstarP*fp)/Kappa_Dstar^2;
     Gamma_Tstar*(1+h_TstarN*fn); K_u/v^2; K_r];
     
-    
-    
-    
-    
+end
 end
     
 %{ 
