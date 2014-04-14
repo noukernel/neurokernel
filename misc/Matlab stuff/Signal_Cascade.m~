@@ -1,7 +1,28 @@
-function [X, t] = Signal_Cascade(X_old, t, N_ph, t_next, h, c, Ca2)
+function [X, t, abs] = Signal_Cascade(X_old, t, T_ph, N_ph, h, c)
 
 mu = 1;                     % Reaction to perform each dt
 av = zeros(1,7);            % For determining mu
+la = 0.5;
+n_s = 2;
+parameters;
+
+% Transition matrix
+V = zeros(7,12);
+V(1,1) = -1;
+V(2,2) = -1;
+V(2,5) = 1;
+V(3,2) = 1;
+V(3,3) = -1;
+V(3,4) = -1;
+V(4,3) = 1;
+V(4,7) = -1;
+V(5,6) = 1;
+V(5,8) = -1;
+V(5,9) = -2;
+V(6,11) = 1;
+V(6,12) = -1;
+V(7,9) = 1;
+V(7,10) = -1;
 
 %% Phototransduction
 X = X_old;
@@ -15,9 +36,11 @@ dt = (1/(la + as)) * log(1/r1);
 % If our random timestep includes a photon...
 if ((t + dt) > t_next)
     t = t_next;
-    X(1) = X(1) + N_ph;  
+    X(1) = X(1) + N_ph;
+    abs = true;
 else
     t = t + dt;
+    abs = false;
 end
     
 r2 = rand;
@@ -46,5 +69,12 @@ for z = 1:7
     else
         X(z) = X(z);
     end
-end 
+    
+    if X(z) < 0
+        X(z) = 0;
+    end
+end
+
+
+
 end
