@@ -11,7 +11,7 @@ Nphoton = 1000;
 NT(:,1) = RPAM(Nphoton);
 
 % Should we store separate I_in per microvillus? No idea...
-%I_in = zeros(30000,1);
+I_in = zeros(30000,1);
 
 T_ph = cell(30000,1);
 for i = 1:30000
@@ -38,7 +38,7 @@ parameters;
 
 %% Initialization of Matrices
 
-X = cell(7,1);
+X = cell(7,30000);
 
 for ii = 1:30000
 
@@ -69,8 +69,8 @@ c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP;
     Gamma_Dstar*(1+h_Dstar*fn); Kappa_Tstar*(1+h_TstarP*fp)/Kappa_Dstar^2;
     Gamma_Tstar*(1+h_TstarN*fn); K_u; K_r];
 
-I_in = I_Tstar * X{7}(1);      % Initialize input current (X(7,1) is Tstar)
-I_Ca = P_Ca * I_in;         % Calcium Current ~40%
+I_in(ii) = I_Tstar * X{7}(1);      % Initialize input current (X(7,1) is Tstar)
+I_Ca = P_Ca * I_in(ii);         % Calcium Current ~40%
 I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2*exp(V_m*F/R/T)));
 I_Canet = I_Ca - 2*I_NaCa;
 
@@ -81,7 +81,7 @@ tt = 0;         % Timekeeper
 %For one microvillus
 while tt < tend
     
-    X_old = [X{1}(i), X{2}(i), X{3}(i), X{4}(i), X{5}(i), X{6}(i), X{7}(i)];
+    X_old = [X{1,ii}(1), X{2,ii}(1), X{3,ii}(1), X{4,ii}(1), X{5,ii}(1), X{6,ii}(1), X{7,ii}(1)];
     
     [Z, t_new, abs] = Signal_Cascade(X_old, tt, T_ph{ii}{1}, T_ph{ii}{2}, h, c);
     
@@ -94,29 +94,29 @@ while tt < tend
     end
     %}
     
-    i = i + 1;
+    %i = i + 1;
     
     for m = 1:7
         X{m} = [X{m} Z(m)];
     end
     
     % Update Current for Calcium
-    I_in = I_Tstar * X{7}(i);      
-    I_Ca = P_Ca * I_in;         
+    I_in(ii) = I_Tstar * X{7}(i);      
+    I_Ca = P_Ca * I_in(ii);         
     I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2*exp(V_m*F/R/T)));
     I_Canet = I_Ca - 2*I_NaCa;  % Not sure we need this one
     
     % Update Calcium
-    Ca2 = v*((I_Ca/2/v/F) + n*K_r*X{6}(i) - f1)/(n*K_u*(C_T - X{6}(i)) + K_Ca - f2);
+    Ca2 = v*((I_Ca/2/v/F) + n*K_r*X{6}(ii) - f1)/(n*K_u*(C_T - X{6}(ii)) + K_Ca - f2);
     
     % Update h
-    h = [X{1}(i); X{1}(i)*X{2}(i); X{3}(i)*(PLC_T - X{4}(i)); X{3}(i)*X{4}(i); 
-    (G_T - X{3}(i) - X{2}(i) - X{4}(i)); X{4}(i); X{4}(i); X{5}(i); 
-    .5*(X{5}(i)*(X{5}(i)-1)*(T_T-X{7}(i))); X{7}(i); C_T - X{6}(i); X{6}(i)];
+    h = [X{1,ii}(1); X{1,ii}(1)*X{2,ii}(1); X{3,ii}(1)*(PLC_T - X{4,ii}(1)); X{3,ii}(1)*X{4,ii}(1); 
+    (G_T - X{3,ii}(1) - X{2,ii}(1) - X{4,ii}(1)); X{4,ii}(1); X{4,ii}(1); X{5,ii}(1); 
+    .5*(X{5,ii}(1)*(X{5,ii}(1)-1)*(T_T-X{7,ii}(1))); X{7,ii}(1); C_T - X{6,ii}(1); X{6,ii}(1)];
     
     % Update fp, fn
     fp = ((Ca2/K_p)^m_p)/(1+(Ca2/K_p)^m_p);
-    fn = n_s*((X{6}(i)/K_n)^m_n)/(1+(X{6}(i)/K_n)^m_n);
+    fn = n_s*((X{6,ii}(1)/K_n)^m_n)/(1+(X{6,ii}(1)/K_n)^m_n);
     
     % Update c
     c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP; Gamma_G; Kappa_Dstar;

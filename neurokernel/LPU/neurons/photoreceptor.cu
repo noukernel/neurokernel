@@ -66,3 +66,34 @@ __global__ void rpam(
         }
     }
 }
+
+// Do something creative instead of rebuilding 7x12 matrix?
+#define V_00 -1
+#define V_11 -1
+#define V_14 1
+#define V_21 1
+#define V_22 -1
+#define V_23 -1
+#define V_32 1
+#define V_36 -1
+#define V_45 1
+#define V_47 -1
+#define V_48 -2
+#define V_510 1
+#define V_511 -1
+#define V_68 1
+#define V_69 -1
+
+__global__ void signal_cascade(
+        int neu_num,
+        %(type)s *X,
+        %(type)s t,
+        %(type)s *T_ph,
+        %(type)s *N_ph,
+        %(type)s *h,
+        %(type)s *c
+        )
+{
+
+
+}
