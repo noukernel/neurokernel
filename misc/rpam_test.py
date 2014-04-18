@@ -12,15 +12,16 @@ import pycuda.driver as drv
 import numpy
 
 from pycuda.compiler import SourceModule
+import random
 
 mod = SourceModule("""
 __global__ void rpam(
-    int neu_num,
+    int *Np,
     int *n_photon,
-    float *rand,
-    int *Np
+    float *rand
     )
 {
+    int nid = threadIdx.x;
     int n_micro = 30000;
     bool not_converged = true;
     float lambda_m, n_m, fe, fa, n_m_temp;
@@ -101,6 +102,6 @@ a = 1000
 grid = (1,1)
 dest = numpy.zeros(30000)
 
-rpam(drv.Out(dest), drv.In(a), block=(1,1,1), grid=grid)
+rpam(drv.Out(dest), drv.In(a), drv.In(random.random()), block=(1,1,1), grid=grid)
 
 print dest
