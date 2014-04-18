@@ -1,25 +1,44 @@
 #define NNEU &(nneu)d
-#define n_micro 30000.0
-// Assume n_photon random from outside the call
+#define n_micro 30000
+
+// Get random number in previous kernel call. Generate 30000
+// random numbers which are used in this code.
+
+// Number of photons generated outside of this code. That is
+// where we can do bound checks, otherwise assume fine.
 __global__ void rpam(
     int neu_num,
-    %(type)s *n_photon
+    %(type)s *n_photon,
+    %(type)s *rand,
+    %(type)s *Np_0,
+    %(type)s *Np_1,
+    %(type)s *Np_2,
+    %(type)s *Np_3,
+    %(type)s *Np_4,
+    %(type)s *Np_5
     )
 {
     bool not_converged = true;
-    %(type)s lambda_m, n_m;
+    %(type)s lambda_m, n_m, fe, fa, n_m_temp;
     n_m = n_micro;
+    lambda_m = 0;
     %(type)s fx[6];
+    
+    // FIXME:
+    // Is this entire section unnecessary if we can generate
+    // a poisson distribution with curand?
     while (not_converged){
         lambda_m = n_photon[nid]/n_m;
         int factorial = 1;
+
+        // 5 max number of photons to absorb?
         for(int ii = 0; ii < 6; ++ii){
             if (ii > 0){
-                factorial = factorial * ii
+                factorial = factorial * ii;
             }
             fx[ii] = exp(-lambda_m) * ( (lambda_m*ii) / factorial );
         }
-        %(type)s n_m_temp = n_micro * (1 - exp(-lembda_m));
+        n_m_temp = n_micro * (1 - exp(-lembda_m));
         if(n_m_temp - n_m < 1){
             not_converged = false;
         }
@@ -29,8 +48,8 @@ __global__ void rpam(
     float lambda_p = n_photon[nid] / n_m;
     int km = 10 * roundf(lambda_p+1);
 
-    %(type)s p[];
-    %(type)s q[];
+    %(type)s p[km];
+    %(type)s q[km];
     factorial = 1;
     float tot_p = 0.0;
     for(int ii = 0; ii < km; ++ii){
@@ -54,7 +73,7 @@ __global__ void rpam(
     int counter;
     %(type)s n_p[n_micro];
     for(int ii = 0; ii < n_m; ++ii){
-        int r = // cuRAND somehow
+        int r = rand[nid];// cuRAND somehow
         found = false;
         counter = 0;
         while(!found && counter < q){ //q size, whatever that is
@@ -65,9 +84,24 @@ __global__ void rpam(
             counter += 1;
         }
     }
+    for(int ii = 0; ii < n_micro; ++ii){
+        if(n_p[ii] == 0)
+            Np_0[nid] += 1;
+        if(n_p[ii] == 1)
+            Np_1[nid] += 1;
+        if(n_p[ii] == 2)
+            Np_2[nid] += 1;
+        if(n_p[ii] == 3)
+            Np_3[nid] += 1;
+        if(n_p[ii] == 4)
+            Np_4[nid] += 1;
+        if(n_p[ii] == 5)
+            Np_5[nid] += 1;
+    }
 }
 
 // Do something creative instead of rebuilding 7x12 matrix?
+/*
 #define V_00 -1
 #define V_11 -1
 #define V_14 1
@@ -83,7 +117,6 @@ __global__ void rpam(
 #define V_511 -1
 #define V_68 1
 #define V_69 -1
-
 __global__ void signal_cascade(
         int neu_num,
         %(type)s *X,
@@ -94,6 +127,6 @@ __global__ void signal_cascade(
         %(type)s *c
         )
 {
-
+*/
 
 }
