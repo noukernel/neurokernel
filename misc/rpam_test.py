@@ -28,12 +28,12 @@ __global__ void rpam(
     lambda_m = 0;
     float fx[6];
     
+    int factorial = 1;
     // FIXME:
     // Is this entire section unnecessary if we can generate
     // a poisson distribution with curand?
     while (not_converged){
         lambda_m = n_photon[nid]/n_m;
-        int factorial = 1;
 
         // 5 max number of photons to absorb?
         for(int ii = 0; ii < 6; ++ii){
@@ -90,7 +90,7 @@ __global__ void rpam(
             counter += 1;
         }
     }
-    Np[nid] = np;
+    Np[nid] = n_p;
 }
 
 }
