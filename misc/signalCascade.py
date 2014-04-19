@@ -155,7 +155,7 @@ double as = c1*h1 + c2*h2 + c3*h3 + c4*h4 + c5*h5 + c6*h6 + c7*h7 + c8*h8 + c9*h
 //33 and 34 are about timestep choice
 
 double CaCurrent = Iin * percCa;
-double NaCaCurrent = NaCaConst * (pow(NaConcInt,3) * CaConcExt-pow(NaConcExt,3.0) * CaConcInt * exp((Vm*FaradayConst) / (gasConst*AbsTemp)));
+double NaCaCurrent = NaCaConst * (pow(NaConcInt,3.0) * CaConcExt-pow(NaConcExt,3.0) * CaConcInt * exp((Vm*FaradayConst) / (gasConst*AbsTemp)));
 
 //36
 double netCaCurrent = CaCurrent - 2*NaCaCurrent;
