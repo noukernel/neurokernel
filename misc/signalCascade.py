@@ -123,7 +123,7 @@ double c5 = DrateG;
 double c6 = ArateD;
 
 //31
-double posFeedback = (pow((CaConcInt/posCoef), posConst)) / (1+(pow(CaConcInt/posCoef), posConst));
+double posFeedback = (pow((CaConcInt/posCoef), posConst)) / (1+pow((CaConcInt/posCoef), posConst));
 
 //27
 double c9 = (ArateT*(1+hTpos*posFeedback))/(ArateD*ArateD);
