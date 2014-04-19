@@ -150,7 +150,22 @@ double c11 = CaUptakeRate/(uVillusVolume*uVillusVolume);
 //30
 double c12 = CaReleaseRate;
 
-double as = c1*h1 + c2*h2 + c3*h3 + c4*h4 + c5*h5 + c6*h6 + c7*h7 + c8*h8 + c9*h9 + c10*h10 + c11*h11 + c12*h12;
+//need an a vector:
+double a1 = c1*h1;
+double a2 = c2*h2;
+double a3 = c3*h3;
+double a4 = c4*h4;
+double a5 = c5*h5;
+double a6 = c6*h6;
+double a7 = c7*h7;
+double a8 = c8*h8;
+double a9 = c9*h9;
+double a10 = c10*h10;
+double a11 = c11*h11;
+double a12 = c12*h12;
+
+double as = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12;
+
 
 //33 and 34 are about timestep choice
 
