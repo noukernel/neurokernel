@@ -44,8 +44,8 @@ mod = SourceModule("""
 #define CaUptakeRate 30
 #define CaReleaseRate 5.5
 #define CaDiffusionRate 1000
-#define uVillusVolume 3.0*double pow(double 10, double -12)
-#define NaCaConst 3.0*double pow(double 10, double -8)
+#define uVillusVolume 3.0*pow(10.0, -12.0)
+#define NaCaConst 3.0*pow(10.0, -8.0)
 #define membrCap 62.8
 #define ns 1 //assuming a dim background (would be 2 for bright)
 
@@ -158,7 +158,7 @@ double as = c1*h1 + c2*h2 + c3*h3 + c4*h4 + c5*h5 + c6*h6 + c7*h7 + c8*h8 + c9*h
 double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*ActivC - CaDiffusionRate*CaConcInt;
 
 double CaCurrent = Iin * percCa;
-double NaCaCurrent = NaCaConst *(pow(NaConcInt,3)*CaConcExt-pow(NaConcExt,3.0)*CaConcInt*exp((Vm*FaradayConst)/(gasConst*AbsTemp));
+double NaCaCurrent = NaCaConst * (pow(NaConcInt,3) * CaConcExt-pow(NaConcExt,3.0) * CaConcInt * exp((Vm*FaradayConst) / (gasConst*AbsTemp)));
 
 //36
 double netCaCurrent = CaCurrent - 2*NaCaCurrent;
