@@ -49,7 +49,15 @@ mod = SourceModule("""
 #define membrCap 62.8
 #define ns 1 //assuming a dim background (would be 2 for bright)
 
-__global__ void signalCascade(double activM){
+__global__ void signalCascade(
+    int *I_in,
+    double *V_m,
+    double *Np,
+    double *rand1,
+    double *rand2)
+{
+
+for(int mid = 0; mid < 30000; ++mid){
 
 //intial conditions given as zero for almost everything:
 double G = 50;
@@ -63,11 +71,10 @@ double GT = 0;
 double T = 0;
 double CaCaM = 0;
 
-double Vm = -0.070;
 double Iin = Tcurrent*activT;
 
 //16: state vector:
-double X1 = activM;
+double X1 = Np[mid];
 double X2 = G;
 double X3 = activG;
 double X4 = activPLC;
@@ -93,62 +100,64 @@ int V79 = 1;
 int V710 = -1;
 
 
+double h[12];
 //18: reactant pairs - not concentrations??
-double h1 = activM;
-double h2 = activM*G;
-double h3 = activG*(PLC - activPLC);
-double h4 = activG*activPLC;
-double h5 = GT-activG-G-activPLC;
-double h6 = activPLC;
-double h7 = activPLC; //NOT A TYPO
-double h8 = activD;
-double h9 = (activD*(activD-1)*(T-activT))/2;
-double h10 = activT;
-double h11 = CaCaM;
-double h12 = activC;
+h[0] = Np[mid];
+h[1] = Np[mid]*G;
+h[2] = activG*(PLC - activPLC);
+h[3] = activG*activPLC;
+h[4] = GT-activG-G-activPLC;
+h[5] = activPLC;
+h[6] = activPLC; //NOT A TYPO
+h[7] = activD;
+h[8] = (activD*(activD-1)*(T-activT))/2;
+h[9] = activT;
+h[10] = CaCaM;
+h[11] = activC;
 
+double c[12]
 //20
-double c2 = ArateG;
+c[1] = ArateG;
 
 //21
-double c3 = AratePLC;
+c[2] = AratePLC;
 
 //22
-double c4 = DrateGAP;
+c[3] = DrateGAP;
 
 //23
-double c5 = DrateG;
+c[4] = DrateG;
 
 //24
-double c6 = ArateD;
+c[5] = ArateD;
 
 //31
 double posFeedback = (powf((CaConcInt/posCoef), posConst)) / (1+powf((CaConcInt/posCoef), posConst));
 
 //27
-double c9 = (ArateT*(1+hTpos*posFeedback))/(ArateD*ArateD);
+c[8] = (ArateT*(1+hTpos*posFeedback))/(ArateD*ArateD);
 
 //32
 double negFeedback = ns * powf((activC/negCoef), negConst)/(1+(powf((activC/negCoef), negConst)));
 //might be a problem wtih activC vs activeCint not being the same thing
 
 //19
-double c1 = DrateM * (1+hM*negFeedback);
+c[0] = DrateM * (1+hM*negFeedback);
 
 //25
-double c7 = DratePLC * (1+hPLC*negFeedback);
+c[6] = DratePLC * (1+hPLC*negFeedback);
 
 //26
-double c8 = DrateD*(1+hD*negFeedback);
+c[7] = DrateD*(1+hD*negFeedback);
 
 //28
-double c10 = DrateT*(1+hTneg*negFeedback);
+c[9] = DrateT*(1+hTneg*negFeedback);
 
 //29
-double c11 = CaUptakeRate/(uVillusVolume*uVillusVolume);
+c[10] = CaUptakeRate/(uVillusVolume*uVillusVolume);
 
 //30
-double c12 = CaReleaseRate;
+c[11] = CaReleaseRate;
 
 //need an a vector:
 double a1 = c1*h1;
@@ -166,11 +175,52 @@ double a12 = c12*h12;
 
 double as = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12;
 
+double av[12];
+int mu = 0;
+// 12 possible reaction
+for(int ii = 1; ii < 12, ++ii){
+    av[ii] = c[ii]*h[ii]
+
+    if((rand2[mid]*as > av[ii - 1) && (rand2[mid]*as <= av[ii])){
+        mu = ii
+    }
+}
+
+if(mu == 0) {
+    X1 += -av[mu];
+} else if (mu == 1){
+    X2 += -av[mu];
+    X3 += av[mu];
+} else if (mu == 2){
+    X3 += -av[mu]; 
+    X4 += av[mu];
+} else if (mu == 3){
+    X3 += -av[mu];
+} else if (mu == 4){
+    X2 += av[mu];
+} else if (mu == 5){
+    X5 += av[mu];
+} else if (mu == 6){
+    X4 += -av[mu];
+} else if (mu == 7){
+    X5 += -av[mu];
+} else if (mu == 8){
+    X5 += -2 * av[mu];
+    X7 += av[mu];
+} else if (mu == 9){
+    X7 += -av[mu];
+} else if (mu == 10){
+    X6 += av[mu];
+} else {
+    X6 += -av[mu];
+}
+
+I_in[mid] = mu;
 
 //33 and 34 are about timestep choice
 
 double CaCurrent = Iin * percCa;
-double NaCaCurrent = NaCaConst * (powf(NaConcInt,3.0) * CaConcExt-powf(NaConcExt,3.0) * CaConcInt * exp((Vm*FaradayConst) / (gasConst*AbsTemp)));
+double NaCaCurrent = NaCaConst * (powf(NaConcInt,3.0) * CaConcExt-powf(NaConcExt,3.0) * CaConcInt * exp((V_m[mid]*FaradayConst) / (gasConst*AbsTemp)));
 
 //36
 double netCaCurrent = CaCurrent - 2*NaCaCurrent;
@@ -181,7 +231,7 @@ double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDif
 //41
 double f1 = NaCaConst * powf(NaConcInt, 3.0)*powf(CaConcExt, 2.0) / (uVillusVolume * FaradayConst);
 //42
-double f2 = NaCaConst * exp((-Vm*FaradayConst)/(gasConst*AbsTemp)) * powf(NaConcExt,3.0) / (uVillusVolume * FaradayConst);
+double f2 = NaCaConst * exp((-V_m[mid]*FaradayConst)/(gasConst*AbsTemp)) * powf(NaConcExt,3.0) / (uVillusVolume * FaradayConst);
 
 //40 (composed of 37,38,39) and NEEDS FIXING MAYBE BECAUSE N AND NS ARE NOT THE SAME??
 double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+ns*CaReleaseRate*activC - f1; 
@@ -190,21 +240,15 @@ double den = ns*CaUptakeRate*CaMConcInt+CaDiffusionRate-f2; //assuming n = ns wh
 double steadyStateCa = uVillusVolume*(num/den);
 
 }
+}
 
 """, options = ["--ptxas-options=-v"])
 
-
-
-
+Np = numpy.zeros(30000)
+rand1 = numpy.random.uniform(size=30000)
+rand2 = numpy.random.uniform(size=30000)
+I_in = numpy.zeros(30000)
+V_m = numpy.ones(30000) * -0.07
 
 signalCascade = mod.get_function("signalCascade")
-signalCascade(block=(1,1,1), grid=(1,1))
-
-
-
-
-
-
-
-
-
+signalCascade(drv.Out(I_in), drv.In(V_m), drv.In(Np), drv.In(rand1), drv.In(rand2), block=(1,1,1), grid=(1,1))
