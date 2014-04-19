@@ -12,7 +12,6 @@ while (flag)
     if p(k+1) < (1/Nmicro)
         flag = false;
     end
-    
 
 end
 
@@ -30,13 +29,10 @@ for ii = 2:4
         Np(r(jj+p(ii-1))) = ii - 1;
     end
 end
-<<<<<<< HEAD
 
 %bar(N(2:end));
 
 
 end
-=======
         
     
->>>>>>> 11aba4305f2c602a30ae03060690a670036060d8
