@@ -179,10 +179,10 @@ double av[12];
 int mu = 0;
 // 12 possible reaction
 for(int ii = 1; ii < 12, ++ii){
-    av[ii] = c[ii]*h[ii]
+    av[ii] = c[ii]*h[ii];
 
     if((rand2[mid]*as > av[ii - 1) && (rand2[mid]*as <= av[ii])){
-        mu = ii
+        mu = ii;
     }
 }
 
@@ -239,6 +239,7 @@ double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+ns*CaReleaseRate*acti
 double den = ns*CaUptakeRate*CaMConcInt+CaDiffusionRate-f2; //assuming n = ns which is likely wrong
 double steadyStateCa = uVillusVolume*(num/den);
 
+}
 }
 }
 
