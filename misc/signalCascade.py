@@ -65,7 +65,7 @@ double activG = 0;
 double activPLC = 0;
 double activD = 0;
 double activC = 0;
-double activT = 0; 
+double activT = 0;
 double PLC = 0;
 double GT = 0;
 double T = 0;
@@ -170,7 +170,7 @@ double a7 = c[7]*h[7];
 double a8 = c[8]*h[8];
 double a9 = c[9]*h[9];
 double a10 = c[10]*h[10];
-double a11 = c[11]*h[11]
+double a11 = c[11]*h[11];
 double a12 = c[12]*h[12];
 
 double as = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12;
@@ -178,10 +178,10 @@ double as = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12;
 double av[12];
 int mu = 0;
 // 12 possible reaction
-for(int ii = 1; ii < 12, ++ii){
+for(int ii = 1; ii < 12; ++ii){
     av[ii] = c[ii]*h[ii];
 
-    if((rand2[mid]*as > av[ii - 1) && (rand2[mid]*as <= av[ii])){
+    if((rand2[mid]*as > av[ii - 1] && (rand2[mid]*as <= av[ii])){
         mu = ii;
     }
 }
