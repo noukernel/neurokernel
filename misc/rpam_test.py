@@ -61,9 +61,10 @@ __global__ void rpam(
         if (ii > 0){
             factorial = factorial * ii;
         }
-        p[ii] = exp(-lambda_p) * (pow(lambda_p, ii)) / factorial;
+        p[ii] = exp(-lambda_m) * (pow(lambda_m, ii)) / factorial;
     }
 
+    int num_abs[11];
     for(int ii = 1; ii < 11; ++ii){
         num_abs[ii] = p[ii]*n_micro;
     }
