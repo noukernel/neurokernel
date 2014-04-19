@@ -24,7 +24,7 @@ r = randperm(30000);
 
 Np = zeros(1,30000);
 
-for ii = 2:4
+for ii = 2:length(p)
     for jj = 1:p(ii)
         Np(r(jj+p(ii-1))) = ii - 1;
     end

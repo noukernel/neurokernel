@@ -80,7 +80,7 @@ __global__ void rpam(
 
 rpam = mod.get_function("rpam")
 a = numpy.zeros(1,dtype=numpy.int32)#1000
-a[0] = 1000
+a[0] = 1997
 r_n = numpy.array(range(30000))
 numpy.random.shuffle(r_n)
 #r_n = numpy.zeros(1,dtype=numpy.float32)
