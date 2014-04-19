@@ -44,8 +44,8 @@ mod = SourceModule("""
 #define CaUptakeRate 30
 #define CaReleaseRate 5.5
 #define CaDiffusionRate 1000
-#define uVillusVolume 3.0*pow(10.0, -12.0)
-#define NaCaConst 3.0*pow(10.0, -8.0)
+#define uVillusVolume 3.0*powf(10.0, -12.0)
+#define NaCaConst 3.0*powf(10.0, -8.0)
 #define membrCap 62.8
 #define ns 1 //assuming a dim background (would be 2 for bright)
 
@@ -123,13 +123,13 @@ double c5 = DrateG;
 double c6 = ArateD;
 
 //31
-double posFeedback = (pow((CaConcInt/posCoef), posConst)) / (1+pow((CaConcInt/posCoef), posConst));
+double posFeedback = (powf((CaConcInt/posCoef), posConst)) / (1+powf((CaConcInt/posCoef), posConst));
 
 //27
 double c9 = (ArateT*(1+hTpos*posFeedback))/(ArateD*ArateD);
 
 //32
-double negFeedback = ns * pow((activC/negCoef), negConst)/(1+(pow((activC/negCoef), negConst)));
+double negFeedback = ns * powf((activC/negCoef), negConst)/(1+(powf((activC/negCoef), negConst)));
 //might be a problem wtih activC vs activeCint not being the same thing
 
 //19
@@ -155,7 +155,7 @@ double as = c1*h1 + c2*h2 + c3*h3 + c4*h4 + c5*h5 + c6*h6 + c7*h7 + c8*h8 + c9*h
 //33 and 34 are about timestep choice
 
 double CaCurrent = Iin * percCa;
-double NaCaCurrent = NaCaConst * (pow(NaConcInt,3.0) * CaConcExt-pow(NaConcExt,3.0) * CaConcInt * exp((Vm*FaradayConst) / (gasConst*AbsTemp)));
+double NaCaCurrent = NaCaConst * (powf(NaConcInt,3.0) * CaConcExt-powf(NaConcExt,3.0) * CaConcInt * exp((Vm*FaradayConst) / (gasConst*AbsTemp)));
 
 //36
 double netCaCurrent = CaCurrent - 2*NaCaCurrent;
@@ -164,9 +164,9 @@ double netCaCurrent = CaCurrent - 2*NaCaCurrent;
 double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDiffusionRate*CaConcInt;
 
 //41
-double f1 = NaCaConst * pow(NaConcInt, 3.0)*pow(CaConcExt, 2.0) / (uVillusVolume * FaradayConst);
+double f1 = NaCaConst * powf(NaConcInt, 3.0)*powf(CaConcExt, 2.0) / (uVillusVolume * FaradayConst);
 //42
-double f2 = NaCaConst * exp((-Vm*FaradayConst)/(gasConst*AbsTemp)) * pow(NaConcExt,3.0) / (uVillusVolume * FaradayConst);
+double f2 = NaCaConst * exp((-Vm*FaradayConst)/(gasConst*AbsTemp)) * powf(NaConcExt,3.0) / (uVillusVolume * FaradayConst);
 
 //40 (composed of 37,38,39) and NEEDS FIXING MAYBE BECAUSE N AND NS ARE NOT THE SAME??
 double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+ns*CaReleaseRate*activC - f1; 
