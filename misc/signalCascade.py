@@ -115,7 +115,7 @@ h[9] = activT;
 h[10] = CaCaM;
 h[11] = activC;
 
-double c[12]
+double c[12];
 //20
 c[1] = ArateG;
 
@@ -181,7 +181,7 @@ int mu = 0;
 for(int ii = 1; ii < 12; ++ii){
     av[ii] = c[ii]*h[ii];
 
-    if((rand2[mid]*as > av[ii - 1] && (rand2[mid]*as <= av[ii])){
+    if((rand2[mid]*as > av[ii - 1]) && (rand2[mid]*as <= av[ii])){
         mu = ii;
     }
 }
