@@ -129,7 +129,7 @@ double posFeedback = (pow(CaConcInt/posCoef), posConst)/(1+(pow(CaConcInt/posCoe
 double c9 = (ArateT*(1+hTpos*posFeedback))/(ArateD*ArateD);
 
 //32
-double negFeedback = ns * (pow(ActivC/negCoef), negConst)/(1+(pow(ActivC/negCoef), negConst));
+double negFeedback = ns * (pow(activC/negCoef), negConst)/(1+(pow((activC/negCoef), negConst));
 //might be a problem wtih activC vs activeCint not being the same thing
 
 //19
@@ -155,7 +155,7 @@ double as = c1*h1 + c2*h2 + c3*h3 + c4*h4 + c5*h5 + c6*h6 + c7*h7 + c8*h8 + c9*h
 //33 and 34 are about timestep choice
 
 //35: THIS NEEDS FIXING SO IT ACTUALLY TAKES DERIVATIVES also because n might not be = ns
-double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*ActivC - CaDiffusionRate*CaConcInt;
+double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDiffusionRate*CaConcInt;
 
 double CaCurrent = Iin * percCa;
 double NaCaCurrent = NaCaConst * (pow(NaConcInt,3) * CaConcExt-pow(NaConcExt,3.0) * CaConcInt * exp((Vm*FaradayConst) / (gasConst*AbsTemp)));
