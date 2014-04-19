@@ -176,10 +176,13 @@ double a12 = c[12]*h[12];
 double as = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12;
 
 double av[12];
+av[0] = 0;
+double hc[12];
 int mu = 0;
 // 12 possible reaction
 for(int ii = 1; ii < 12; ++ii){
-    av[ii] = c[ii]*h[ii];
+    hc[ii] = c[ii]*h[ii];
+    av[ii] += hc[ii];
 
     if((rand2[mid]*as > av[ii - 1]) && (rand2[mid]*as <= av[ii])){
         mu = ii;
@@ -187,32 +190,32 @@ for(int ii = 1; ii < 12; ++ii){
 }
 
 if(mu == 0) {
-    X1 += -av[mu];
+    X1 += -hc[mu];
 } else if (mu == 1){
-    X2 += -av[mu];
-    X3 += av[mu];
+    X2 += -hc[mu];
+    X3 += hc[mu];
 } else if (mu == 2){
-    X3 += -av[mu]; 
-    X4 += av[mu];
+    X3 += -hc[mu];
+    X4 += hc[mu];
 } else if (mu == 3){
-    X3 += -av[mu];
+    X3 += -hc[mu];
 } else if (mu == 4){
-    X2 += av[mu];
+    X2 += hc[mu];
 } else if (mu == 5){
-    X5 += av[mu];
+    X5 += hc[mu];
 } else if (mu == 6){
-    X4 += -av[mu];
+    X4 += -hc[mu];
 } else if (mu == 7){
-    X5 += -av[mu];
+    X5 += -hc[mu];
 } else if (mu == 8){
-    X5 += -2 * av[mu];
-    X7 += av[mu];
+    X5 += -2 * hc[mu];
+    X7 += hc[mu];
 } else if (mu == 9){
-    X7 += -av[mu];
+    X7 += -hc[mu];
 } else if (mu == 10){
-    X6 += av[mu];
+    X6 += hc[mu];
 } else {
-    X6 += -av[mu];
+    X6 += -hc[mu];
 }
 
 I_in[mid] = mu;
@@ -247,7 +250,7 @@ double steadyStateCa = uVillusVolume*(num/den);
 Np = numpy.zeros(30000)
 rand1 = numpy.random.uniform(size=30000)
 rand2 = numpy.random.uniform(size=30000)
-I_in = numpy.zeros(30000)
+I_in = numpy.zeros(30000, dtype=int32)
 V_m = numpy.ones(30000) * -0.07
 
 signalCascade = mod.get_function("signalCascade")
