@@ -250,8 +250,10 @@ double steadyStateCa = uVillusVolume*(num/den);
 Np = numpy.zeros(30000)
 rand1 = numpy.random.uniform(size=30000)
 rand2 = numpy.random.uniform(size=30000)
-I_in = numpy.zeros(30000, dtype=int32)
+I_in = numpy.zeros(30000, dtype=numpy.int32)
 V_m = numpy.ones(30000) * -0.07
 
 signalCascade = mod.get_function("signalCascade")
 signalCascade(drv.Out(I_in), drv.In(V_m), drv.In(Np), drv.In(rand1), drv.In(rand2), block=(1,1,1), grid=(1,1))
+
+print I_in
