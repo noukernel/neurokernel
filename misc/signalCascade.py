@@ -160,18 +160,18 @@ c[10] = CaUptakeRate/(uVillusVolume*uVillusVolume);
 c[11] = CaReleaseRate;
 
 //need an a vector:
-double a1 = c1*h1;
-double a2 = c2*h2;
-double a3 = c3*h3;
-double a4 = c4*h4;
-double a5 = c5*h5;
-double a6 = c6*h6;
-double a7 = c7*h7;
-double a8 = c8*h8;
-double a9 = c9*h9;
-double a10 = c10*h10;
-double a11 = c11*h11;
-double a12 = c12*h12;
+double a1 = c[1]*h[1];
+double a2 = c[2]*h[2];
+double a3 = c[3]*h[3];
+double a4 = c[4]*h[4];
+double a5 = c[5]*h[5];
+double a6 = c[6]*h[6];
+double a7 = c[7]*h[7];
+double a8 = c[8]*h[8];
+double a9 = c[9]*h[9];
+double a10 = c[10]*h[10];
+double a11 = c[11]*h[11]
+double a12 = c[12]*h[12];
 
 double as = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12;
 
