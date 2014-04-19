@@ -10,12 +10,7 @@ __global__ void rpam(
     int neu_num,
     %(type)s *n_photon,
     %(type)s *rand,
-    %(type)s *Np_0,
-    %(type)s *Np_1,
-    %(type)s *Np_2,
-    %(type)s *Np_3,
-    %(type)s *Np_4,
-    %(type)s *Np_5
+    %(type)s *Np
     )
 {
     bool not_converged = true;
@@ -36,10 +31,10 @@ __global__ void rpam(
             if (ii > 0){
                 factorial = factorial * ii;
             }
-            fx[ii] = exp(-lambda_m) * ( (lambda_m*ii) / factorial );
+            fx[ii] = exp(-lambda_m) * ( pow(lambda_m,ii) / factorial );
         }
-        n_m_temp = n_micro * (1 - exp(-lembda_m));
-        if(n_m_temp - n_m < 1){
+        n_m_temp = n_micro * (1 - exp(-lambda_m));
+        if(fabsf(n_m_temp - n_m) < 1){
             not_converged = false;
         }
 
@@ -53,16 +48,17 @@ __global__ void rpam(
     factorial = 1;
     float tot_p = 0.0;
     for(int ii = 0; ii < km; ++ii){
+        p[ii] = exp(-lambda_p) * (pow(lambda_p, ii - 1)) / factorial;
+        tot_p += p[ii];
         if (ii > 0){
             factorial = factorial * ii;
         }
-        p[ii] = exp(-lambda_p) * (pow(lambda_p, ii - 1)) / factorial;
-        tot_p += p[ii];
     }
 
     float sum_p = 0.0;
-    for(int ii = 0; ii < km; ++ii){
-        for(int jj = 0; jj < ii; ++jj){
+    q[0] = p[0];
+    for(int ii = 1; ii < km; ++ii){
+        for(int jj = 1; jj < ii; ++jj){
             sum_p += p[ii];
         }
         q[ii] = sum_p / (tot_p - p[0]);
@@ -84,20 +80,7 @@ __global__ void rpam(
             counter += 1;
         }
     }
-    for(int ii = 0; ii < n_micro; ++ii){
-        if(n_p[ii] == 0)
-            Np_0[nid] += 1;
-        if(n_p[ii] == 1)
-            Np_1[nid] += 1;
-        if(n_p[ii] == 2)
-            Np_2[nid] += 1;
-        if(n_p[ii] == 3)
-            Np_3[nid] += 1;
-        if(n_p[ii] == 4)
-            Np_4[nid] += 1;
-        if(n_p[ii] == 5)
-            Np_5[nid] += 1;
-    }
+    Np[nid] = n_p;
 }
 
 // Do something creative instead of rebuilding 7x12 matrix?
