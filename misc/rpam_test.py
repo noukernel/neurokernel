@@ -18,7 +18,7 @@ mod = SourceModule("""
 __global__ void rpam( 
     int *Np, 
     int *n_photon, 
-    float *rand, 
+    int *rand, 
     float *p, 
     float *q 
     ) 
@@ -56,47 +56,32 @@ __global__ void rpam(
     int km = 10 * roundf(lambda_p+1); 
 
     factorial = 1;
-    float tot_p = 0.0;
+    lambda_m = n_photon[nid]/30000.0;
     for(int ii = 0; ii < km; ++ii){
-        p[ii] = exp(-lambda_p) * (pow(lambda_p, ii)) / factorial;
-        tot_p += p[ii];
         if (ii > 0){
             factorial = factorial * ii;
         }
+        p[ii] = exp(-lambda_p) * (pow(lambda_p, ii)) / factorial;
     }
 
-    float sum_p = 0.0;
-    q[0] = 0;
-    for(int ii = 0; ii < km; ++ii){
-        for(int jj = 0; jj < ii; ++jj){
-            sum_p += p[jj];
+    for(int ii = 1; ii < 11; ++ii){
+        num_abs[ii] = p[ii]*n_micro;
+    }
+    num_abs[0] = 0;
+    for(int ii = 1; ii < 11; ++ii){
+        for(int jj = 0; jj < num_abs[ii];++jj){
+            Np[rand[jj+num_abs[ii -1]]] = ii;
         }
-        q[ii] = sum_p / (tot_p - p[0]);
     }
 
-    int r;
-    bool found;
-    int counter;
-    for(int ii = 0; ii < n_micro; ++ii){
-        r = rand[ii];// cuRAND somehow
-        found = false;
-        counter = 1;
-        Np[ii] = 0;
-        while(!found && (counter < 20)){
-            if (r < q[counter]){
-                Np[ii] = counter - 1;
-                found = true;
-            }
-            counter += 1;
-        }
-    }
 }
 """, options = ["--ptxas-options=-v"])
 
 rpam = mod.get_function("rpam")
 a = numpy.zeros(1,dtype=numpy.int32)#1000
 a[0] = 1000
-r_n = numpy.random.uniform(size=30000)
+r_n = numpy.array(range(30000))
+numpy.random.shuffle(r_n)
 #r_n = numpy.zeros(1,dtype=numpy.float32)
 #r_n[0] = random.random()
 grid = (1,1)
@@ -113,12 +98,15 @@ print "Q data: ", q
 
 print "dest result: ", dest
 tot = 0
+n_0 = 0
 n_1 = 0
 n_2 = 0
 n_3 = 0
 n_4 = 0
 for ii in dest:
         tot += ii
+        if(ii == 0):
+                n_0 += 1
         if(ii == 1):
                 n_1 += 1
         if(ii == 2):
