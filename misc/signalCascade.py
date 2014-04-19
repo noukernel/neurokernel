@@ -20,7 +20,8 @@ mod = SourceModule("""
 #define ArateG 7.05
 #define AratePLC 15.6
 #define ArateT 150
-#define ArateD 100
+#define ArateD 1300
+#define ArateK 100
 #define DrateM 3.7
 #define DrateG 3.5
 #define DratePLC 144
@@ -135,7 +136,7 @@ c[5] = ArateD;
 double posFeedback = (powf((CaConcInt/posCoef), posConst)) / (1+powf((CaConcInt/posCoef), posConst));
 
 //27
-c[8] = (ArateT*(1+hTpos*posFeedback))/(ArateD*ArateD);
+c[8] = (ArateT*(1+hTpos*posFeedback))/(ArateK*ArateK);
 
 //32
 double negFeedback = ns * powf((activC/negCoef), negConst)/(1+(powf((activC/negCoef), negConst)));
