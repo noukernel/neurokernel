@@ -48,7 +48,15 @@ mod = SourceModule("""
 #define NaCaConst 3.0*double pow(double 10, double -8)
 #define membrCap 62.8
 
-__global__ void signalCascade{
+__global__ void signalCascade(double activM){
+
+//intial conditions given as:
+double G = 50;
+double activG = 0;
+double activPLC = 0;
+double activD = 0;
+double activC = 0;
+double activT = 0; 
 
 double Vm = -0.070;
 double Iin = Tcurrent*activT;
@@ -136,6 +144,8 @@ double c11 = CaUptakeRate/(uVillusVolume*uVillusVolume);
 //30
 double c12 = CaReleaseRate;
 
+double as = c1*h1 + c2*h2 + c3*h3 + c4*h4 + c5*h5 + c6*h6 + c7*h7 + c8*h8 + c9*h9 + c10*h10 + c11*h11 + c12*h12;
+
 //33 and 34 are about timestep choice
 
 //35
@@ -146,8 +156,6 @@ double NaCaCurrent = NaCaConst *(pow(NaConcInt,3)*CaConcExt-pow(NaConcExt,3.0)*C
 
 //36
 double netCaCurrent = CaCurrent - 2*NaCaCurrent;
-
-double ActiveCconc = ?;    
 
 //41
 double f1 = NaCaConst * pow(NaConcInt, 3.0)*pow(CaConcExt, 2.0) / (uVillusVolume * FaradayConst);
