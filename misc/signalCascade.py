@@ -40,7 +40,7 @@ mod = SourceModule("""
 #define nBindingSites 4
 #define FaradayConst 96485
 #define AbsTemp 293
-#define GasConst 8.314
+#define gasConst 8.314
 #define CaUptakeRate 30
 #define CaReleaseRate 5.5
 #define CaDiffusionRate 1000
@@ -129,7 +129,7 @@ double posFeedback = (pow(CaConcInt/posCoef), posConst)/(1+(pow(CaConcInt/posCoe
 double c9 = (ArateT*(1+hTpos*posFeedback))/(ArateD*ArateD);
 
 //32
-double negFeedback = ns * (pow(activC/negCoef), negConst)/(1+(pow((activC/negCoef), negConst));
+double negFeedback = ns * (pow(activC/negCoef), negConst)/(1+(pow((activC/negCoef), negConst)));
 //might be a problem wtih activC vs activeCint not being the same thing
 
 //19
@@ -154,14 +154,14 @@ double as = c1*h1 + c2*h2 + c3*h3 + c4*h4 + c5*h5 + c6*h6 + c7*h7 + c8*h8 + c9*h
 
 //33 and 34 are about timestep choice
 
-//35: THIS NEEDS FIXING SO IT ACTUALLY TAKES DERIVATIVES also because n might not be = ns
-double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDiffusionRate*CaConcInt;
-
 double CaCurrent = Iin * percCa;
 double NaCaCurrent = NaCaConst * (pow(NaConcInt,3) * CaConcExt-pow(NaConcExt,3.0) * CaConcInt * exp((Vm*FaradayConst) / (gasConst*AbsTemp)));
 
 //36
 double netCaCurrent = CaCurrent - 2*NaCaCurrent;
+
+//35: THIS NEEDS FIXING SO IT ACTUALLY TAKES DERIVATIVES also because n might not be = ns
+double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDiffusionRate*CaConcInt;
 
 //41
 double f1 = NaCaConst * pow(NaConcInt, 3.0)*pow(CaConcExt, 2.0) / (uVillusVolume * FaradayConst);
@@ -171,7 +171,7 @@ double f2 = NaCaConst * exp((-Vm*FaradayConst)/(gasConst*AbsTemp)) * pow(NaConcE
 //40 (composed of 37,38,39) and NEEDS FIXING MAYBE BECAUSE N AND NS ARE NOT THE SAME??
 double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+ns*CaReleaseRate*activC - f1; 
 //might be a problem that activC isn't a conc?
-double den = n*CaUptakeRate*CaMConcInt+CaDiffusionRate-f2;
+double den = ns*CaUptakeRate*CaMConcInt+CaDiffusionRate-f2; //assuming n = ns which is likely wrong
 double steadyStateCa = uVillusVolume*(num/den);
 
 }
