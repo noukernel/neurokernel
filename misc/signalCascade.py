@@ -241,7 +241,6 @@ double steadyStateCa = uVillusVolume*(num/den);
 
 }
 }
-}
 
 """, options = ["--ptxas-options=-v"])
 
