@@ -47,16 +47,21 @@ mod = SourceModule("""
 #define uVillusVolume 3.0*double pow(double 10, double -12)
 #define NaCaConst 3.0*double pow(double 10, double -8)
 #define membrCap 62.8
+#define ns 1 //assuming a dim background (would be 2 for bright)
 
 __global__ void signalCascade(double activM){
 
-//intial conditions given as:
+//intial conditions given as zero for almost everything:
 double G = 50;
 double activG = 0;
 double activPLC = 0;
 double activD = 0;
 double activC = 0;
 double activT = 0; 
+double PLC = 0;
+double GT = 0;
+double T = 0;
+double CaCaM = 0;
 
 double Vm = -0.070;
 double Iin = Tcurrent*activT;
@@ -124,7 +129,8 @@ double posFeedback = (pow(CaConcInt/posCoef), posConst)/(1+(pow(CaConcInt/posCoe
 double c9 = (ArateT*(1+hTpos*posFeedback))/(ArateD*ArateD);
 
 //32
-double negFeedback = ns * (pow(ActiveCint/negCoef), negConst)/(1+(pow(ActiveCint/negCoef), negConst));
+double negFeedback = ns * (pow(ActivC/negCoef), negConst)/(1+(pow(ActivC/negCoef), negConst));
+//might be a problem wtih activC vs activeCint not being the same thing
 
 //19
 double c1 = DrateM * (1+hM*negFeedback);
@@ -148,8 +154,8 @@ double as = c1*h1 + c2*h2 + c3*h3 + c4*h4 + c5*h5 + c6*h6 + c7*h7 + c8*h8 + c9*h
 
 //33 and 34 are about timestep choice
 
-//35
-double ddtCaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-n*ddtActiveCint - CaDiffusionRate*CaConcInt;
+//35: THIS NEEDS FIXING SO IT ACTUALLY TAKES DERIVATIVES also because n might not be = ns
+double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*ActivC - CaDiffusionRate*CaConcInt;
 
 double CaCurrent = Iin * percCa;
 double NaCaCurrent = NaCaConst *(pow(NaConcInt,3)*CaConcExt-pow(NaConcExt,3.0)*CaConcInt*exp((Vm*FaradayConst)/(gasConst*AbsTemp));
@@ -162,8 +168,9 @@ double f1 = NaCaConst * pow(NaConcInt, 3.0)*pow(CaConcExt, 2.0) / (uVillusVolume
 //42
 double f2 = NaCaConst * exp((-Vm*FaradayConst)/(gasConst*AbsTemp)) * pow(NaConcExt,3.0) / (uVillusVolume * FaradayConst);
 
-//40 (composed of 37,38,39)
-double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+n*CaReleaseRate*activCconc - f1;
+//40 (composed of 37,38,39) and NEEDS FIXING MAYBE BECAUSE N AND NS ARE NOT THE SAME??
+double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+ns*CaReleaseRate*activC - f1; 
+//might be a problem that activC isn't a conc?
 double den = n*CaUptakeRate*CaMConcInt+CaDiffusionRate-f2;
 double steadyStateCa = uVillusVolume*(num/den);
 
