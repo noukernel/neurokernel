@@ -28,37 +28,41 @@ mod = SourceModule("""
 #define K_Ca 100
 
 __global__ void calciumDynamics(
-	double Ca2
-	double V_m,
-	double I_in,
-	double C_star
-	)
+	double *Ca2,
+	double *V_m,
+	double *I_in,
+	double *C_star)
 {
 
-double I_Ca = I_in * P_Ca;
-double I_NaCa = K_NaCa * (powf(Na_i,3.0) * Ca_o - powf(Na_o,3.0) * Ca2 * exp((-V_m*F) / (R*T)));
+double I_Ca = I_in[0] * P_Ca;
+double I_NaCa = K_NaCa * (powf(Na_i,3.0) * Ca_o - powf(Na_o,3.0) * Ca2[0] * exp((-V_m[0]*F) / (R*T)));
 
 //36
 double I_CaNet = I_Ca - 2*I_NaCa;
 
 //41
-double f1 = K_NaCa * powf(Na_i, 3.0)*powf(Ca_o, 2.0) / (v*F);
+double f1 = K_NaCa * powf(Na_i, 3.0)*Ca_o / (v*F);
 //42
-double f2 = (K_NaCa * exp((-V_m*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
+double f2 = (K_NaCa * exp((-V_m[0]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
 
 //40 (composed of 37,38,39)
-Ca2 = v*(I_CaNet/(2*v*F) + n*K_r*C_star - f1)/(n*K_u*(C_T - C_star) + K_Ca - f2);
+Ca2[1] = v*(I_CaNet/(2*v*F) + n*K_r*C_star[0] - f1)/(n*K_u*(C_T - C_star[0]) + K_Ca - f2);
+
 
 }
 
 """, options = ["--ptxas-options=-v"])
 
-V_m = -0.07
-I_in = 0.1
-C_star = 0.25
-Ca2 = .000160
+V_m = numpy.array([1],dtype=numpy.float64)
+V_m[0] = -0.07
+I_in = numpy.array([1],dtype=numpy.float64)
+I_in[0] = 0.1
+C_star = numpy.array([1],dtype=numpy.float64)
+C_star[0] = 0.25
+Ca2 = numpy.zeros(2,dtype=numpy.float64)
+Ca2[0] = 0.00016
 
 calciumDynamics = mod.get_function("calciumDynamics")
-signalCascade(drv.InOut(Ca2), drv.In(V_m), drv.In(I_in), drv.In(C_star), block=(1,1,1), grid=(1,1))
+calciumDynamics(drv.InOut(Ca2), drv.In(V_m), drv.In(I_in), drv.In(C_star), block=(1,1,1), grid=(1,1))
 
 print Ca2
