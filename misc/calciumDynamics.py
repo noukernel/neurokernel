@@ -7,7 +7,6 @@ import random
  
 mod = SourceModule(""" 
 
-
 #define Kp 0.3
 #define Kn 0.18
 #define mp 2
@@ -45,7 +44,7 @@ double I_CaNet = I_Ca - 2*I_NaCa;
 //41
 double f1 = K_NaCa * powf(Na_i, 3.0)*powf(Ca_o, 2.0) / (v*F);
 //42
-double f2 = K_NaCa * exp((-V_m*F)/(R*T)) * powf(NaConcExt,3.0) / (uVillusVolume * FaradayConst);
+double f2 = (K_NaCa * exp((-V_m*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
 
 //40 (composed of 37,38,39)
 Ca2 = v*(I_CaNet/(2*v*F) + n*K_r*C_star - f1)/(n*K_u*(C_T - C_star) + K_Ca - f2);
