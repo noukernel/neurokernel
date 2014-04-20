@@ -28,9 +28,6 @@ mod = SourceModule("""
 #define DrateD 4
 #define DrateT 25
 #define DrateGAP 3
-#define Tchannels 25
-#define numGprotein 50
-#define numPLC 100
 #define percCa 0.40
 #define Tcurrent 0.68
 #define NaConcExt 120
@@ -49,13 +46,18 @@ mod = SourceModule("""
 #define NaCaConst 3.0*powf(10.0, -8.0)
 #define membrCap 62.8
 #define ns 1 //assuming a dim background (would be 2 for bright)
+#define PLCT 100
+#define GT 50
+#define TT 25
+#define CT 0.5
 
 __global__ void signalCascade(
     int *I_in,
     double *V_m,
     double *Np,
     double *rand1,
-    double *rand2)
+    double *rand2,
+    double *Ca2)
 {
 
 for(int mid = 0; mid < 30000; ++mid){
@@ -67,11 +69,6 @@ double activPLC = 0;
 double activD = 0;
 double activC = 0;
 double activT = 0;
-double PLCT = 100;
-double GT = 50;
-double TT = 25;
-double CT = 0.5;
-double Ca2 = CaConcInt;
 
 double Iin = Tcurrent*activT;
 
@@ -222,28 +219,7 @@ if(mu == 0) {
 
 I_in[mid] = mu;
 
-//33 and 34 are about timestep choice
-
-double CaCurrent = Iin * percCa;
-double NaCaCurrent = NaCaConst * (powf(NaConcInt,3.0) * CaConcExt-powf(NaConcExt,3.0) * Ca2 * exp((-V_m[mid]*FaradayConst) / (gasConst*AbsTemp)));
-
-//36
-double netCaCurrent = CaCurrent - 2*NaCaCurrent;
-
-//35: THIS NEEDS FIXING SO IT ACTUALLY TAKES DERIVATIVES also because n might not be = ns
-//double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDiffusionRate*Ca2;
-
-//41
-double f1 = NaCaConst * powf(NaConcInt, 3.0)*powf(CaConcExt, 2.0) / (uVillusVolume * FaradayConst);
-//42
-double f2 = NaCaConst * exp((-V_m[mid]*FaradayConst)/(gasConst*AbsTemp)) * powf(NaConcExt,3.0) / (uVillusVolume * FaradayConst);
-
-//40 (composed of 37,38,39)
-double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+nBindingSites*CaReleaseRate*activC - f1;
-//might be a problem that activC isn't a conc?
-double den = ns*CaUptakeRate*CaMConcInt+CaDiffusionRate-f2; //assuming n = ns which is likely wrong
-Ca2 = uVillusVolume*(num/den);
-
+}
 }
 }
 
