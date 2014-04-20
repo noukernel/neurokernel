@@ -8,14 +8,7 @@ from pycuda.compiler import SourceModule
 
 from neurokernel.LPU.utils.simpleio import *
 
-# E0 -> E_Na
-# E1 -> E_K
-# E2 -> E_L
-# g0 -> g_Na
-# g1 -> g_K
-# g2 -> g_L
-
-class HodgkinHuxley(BaseNeuron):
+class Photoreceptor(BaseNeuron):
     def __init__(self, n_dict, V, dt, debug=False, LPU_id=None):
         self.num_neurons = len(n_dict['id'])
         self.dt = np.double(dt)
@@ -103,7 +96,10 @@ class HodgkinHuxley(BaseNeuron):
         mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         func = mod.get_function("calcium_dynamics")
         func.prepare( [ np.int32, # neu_num
-                        np.intp   # n_photons
+                        np.intp, # Ca2
+                        np.intp, # V_m
+                        np.intp, # I_in
+                        np.intp  # C_star
                         ])
         return func
 
