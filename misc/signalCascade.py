@@ -7,10 +7,10 @@ import random
  
 mod = SourceModule(""" 
 
-#define posCoef 0.3
-#define negCoef 0.18
-#define posConst 2
-#define negConst 3
+#define Kp 0.3
+#define Kn 0.18
+#define mp 2
+#define mn 3
 #define m 2
 #define hM 40
 #define hPLC 11.1
@@ -134,26 +134,26 @@ c[4] = DrateG;
 c[5] = ArateD;
 
 //31
-double posFeedback = (powf((CaConcInt/posCoef), posConst)) / (1+powf((CaConcInt/posCoef), posConst));
+double fp = (powf((Ca2/Kp), mp)) / (1+powf((Ca2/Kp), mp));
 
 //27
-c[8] = (ArateT*(1+hTpos*posFeedback))/(ArateK*ArateK);
+c[8] = (ArateT*(1+hTpos*fp))/(ArateK*ArateK);
 
 //32
-double negFeedback = ns * powf((activC/negCoef), negConst)/(1+(powf((activC/negCoef), negConst)));
+double fn = ns * powf((activC/Kn), mn)/(1+(powf((activC/Kn), mn)));
 //might be a problem wtih activC vs activeCint not being the same thing
 
 //19
-c[0] = DrateM * (1+hM*negFeedback);
+c[0] = DrateM * (1+hM*fn);
 
 //25
-c[6] = DratePLC * (1+hPLC*negFeedback);
+c[6] = DratePLC * (1+hPLC*fn);
 
 //26
-c[7] = DrateD*(1+hD*negFeedback);
+c[7] = DrateD*(1+hD*fn);
 
 //28
-c[9] = DrateT*(1+hTneg*negFeedback);
+c[9] = DrateT*(1+hTneg*fn);
 
 //29
 c[10] = CaUptakeRate/(uVillusVolume*uVillusVolume);
@@ -225,20 +225,20 @@ I_in[mid] = mu;
 //33 and 34 are about timestep choice
 
 double CaCurrent = Iin * percCa;
-double NaCaCurrent = NaCaConst * (powf(NaConcInt,3.0) * CaConcExt-powf(NaConcExt,3.0) * CaConcInt * exp((V_m[mid]*FaradayConst) / (gasConst*AbsTemp)));
+double NaCaCurrent = NaCaConst * (powf(NaConcInt,3.0) * CaConcExt-powf(NaConcExt,3.0) * Ca2 * exp((-V_m[mid]*FaradayConst) / (gasConst*AbsTemp)));
 
 //36
 double netCaCurrent = CaCurrent - 2*NaCaCurrent;
 
 //35: THIS NEEDS FIXING SO IT ACTUALLY TAKES DERIVATIVES also because n might not be = ns
-//double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDiffusionRate*CaConcInt;
+//double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDiffusionRate*Ca2;
 
 //41
 double f1 = NaCaConst * powf(NaConcInt, 3.0)*powf(CaConcExt, 2.0) / (uVillusVolume * FaradayConst);
 //42
 double f2 = NaCaConst * exp((-V_m[mid]*FaradayConst)/(gasConst*AbsTemp)) * powf(NaConcExt,3.0) / (uVillusVolume * FaradayConst);
 
-//40 (composed of 37,38,39) and NEEDS FIXING MAYBE BECAUSE N AND NS ARE NOT THE SAME??
+//40 (composed of 37,38,39)
 double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+nBindingSites*CaReleaseRate*activC - f1;
 //might be a problem that activC isn't a conc?
 double den = ns*CaUptakeRate*CaMConcInt+CaDiffusionRate-f2; //assuming n = ns which is likely wrong
