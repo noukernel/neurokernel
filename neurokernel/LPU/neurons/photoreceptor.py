@@ -90,18 +90,18 @@ class HodgkinHuxley(BaseNeuron):
         return func
 
     def get_sig_cas_kernel(self):
-        cuda_src = open('./rpam.cu', 'r')
+        cuda_src = open('./sig_cas.cu', 'r')
         mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
-        func = mod.get_function("rpam")
+        func = mod.get_function("signal_cascade")
         func.prepare( [ np.int32, # neu_num
                         np.intp   # n_photons
                         ])
         return func
 
     def get_ca_dyn_kernel(self):
-        cuda_src = open('./rpam.cu', 'r')
+        cuda_src = open('./ca_dyn.cu', 'r')
         mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
-        func = mod.get_function("rpam")
+        func = mod.get_function("calcium_dynamics")
         func.prepare( [ np.int32, # neu_num
                         np.intp   # n_photons
                         ])
