@@ -81,24 +81,6 @@ double X5 = activD;
 double X6 = activC;
 double X7 = activT;
 
-//17: state transition matrix, sparsely defined
-int V11 = -1;
-int V22 = -1;
-int V25 = 1;
-int V32 = 1;
-int V33 = -1;
-int V34 = -1;
-int V43 = 1;
-int V47 = -1;
-int V56 = 1;
-int V58 = -1;
-int V59 = -2;
-int V611 = 1;
-int V612 = -1;
-int V79 = 1;
-int V710 = -1;
-
-
 double h[12];
 //18: reactant pairs - not concentrations??
 h[0] = Np[mid];
@@ -111,10 +93,22 @@ h[6] = activPLC; //NOT A TYPO
 h[7] = activD;
 h[8] = (activD*(activD-1)*(TT-activT))/2;
 h[9] = activT;
-h[10] = (CT - activC)*Ca2;
+h[10] = (CT - activC)*Ca2[0];
 h[11] = activC;
 
+//31
+double fp = (powf((Ca2[0]/Kp), mp)) / (1+powf((Ca2[0]/Kp), mp));
+
+//32
+double fn = ns * powf((activC/Kn), mn)/(1+(powf((activC/Kn), mn)));
+//might be a problem wtih activC vs activeCint not being the same thing
+
+
 double c[12];
+
+//19
+c[0] = DrateM * (1+hM*fn);
+
 //20
 c[1] = ArateG;
 
@@ -130,24 +124,14 @@ c[4] = DrateG;
 //24
 c[5] = ArateD;
 
-//31
-double fp = (powf((Ca2/Kp), mp)) / (1+powf((Ca2/Kp), mp));
-
-//27
-c[8] = (ArateT*(1+hTpos*fp))/(ArateK*ArateK);
-
-//32
-double fn = ns * powf((activC/Kn), mn)/(1+(powf((activC/Kn), mn)));
-//might be a problem wtih activC vs activeCint not being the same thing
-
-//19
-c[0] = DrateM * (1+hM*fn);
-
 //25
 c[6] = DratePLC * (1+hPLC*fn);
 
 //26
 c[7] = DrateD*(1+hD*fn);
+
+//27
+c[8] = (ArateT*(1+hTpos*fp))/(ArateK*ArateK);
 
 //28
 c[9] = DrateT*(1+hTneg*fn);
@@ -221,7 +205,6 @@ I_in[mid] = mu;
 
 }
 }
-}
 
 """, options = ["--ptxas-options=-v"])
 
@@ -230,6 +213,8 @@ rand1 = numpy.random.uniform(size=30000)
 rand2 = numpy.random.uniform(size=30000)
 I_in = numpy.zeros(30000, dtype=numpy.int32)
 V_m = numpy.ones(30000) * -0.07
+Ca2 = numpy.array([1],dtype=numpy.float64)
+Ca2[0] = .00016
 
 signalCascade = mod.get_function("signalCascade")
 signalCascade(drv.Out(I_in), drv.In(V_m), drv.In(Np), drv.In(rand1), drv.In(rand2), block=(1,1,1), grid=(1,1))
