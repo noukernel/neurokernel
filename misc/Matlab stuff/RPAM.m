@@ -31,8 +31,4 @@ for ii = 2:length(p)
 end
 
 %bar(N(2:end));
-
-
-end
-        
     
