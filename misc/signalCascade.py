@@ -67,10 +67,11 @@ double activPLC = 0;
 double activD = 0;
 double activC = 0;
 double activT = 0;
-double PLC = 0;
-double GT = 0;
-double T = 0;
-double CaCaM = 0;
+double PLCT = 100;
+double GT = 50;
+double TT = 25;
+double CT = 0.5;
+double Ca2 = CaConcInt;
 
 double Iin = Tcurrent*activT;
 
@@ -105,15 +106,15 @@ double h[12];
 //18: reactant pairs - not concentrations??
 h[0] = Np[mid];
 h[1] = Np[mid]*G;
-h[2] = activG*(PLC - activPLC);
+h[2] = activG*(PLCT - activPLC);
 h[3] = activG*activPLC;
 h[4] = GT-activG-G-activPLC;
 h[5] = activPLC;
 h[6] = activPLC; //NOT A TYPO
 h[7] = activD;
-h[8] = (activD*(activD-1)*(T-activT))/2;
+h[8] = (activD*(activD-1)*(TT-activT))/2;
 h[9] = activT;
-h[10] = CaCaM;
+h[10] = (CT - activC)*Ca2;
 h[11] = activC;
 
 double c[12];
@@ -230,7 +231,7 @@ double NaCaCurrent = NaCaConst * (powf(NaConcInt,3.0) * CaConcExt-powf(NaConcExt
 double netCaCurrent = CaCurrent - 2*NaCaCurrent;
 
 //35: THIS NEEDS FIXING SO IT ACTUALLY TAKES DERIVATIVES also because n might not be = ns
-double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDiffusionRate*CaConcInt;
+//double CaInt = netCaCurrent/(2 * uVillusVolume * FaradayConst)-ns*activC - CaDiffusionRate*CaConcInt;
 
 //41
 double f1 = NaCaConst * powf(NaConcInt, 3.0)*powf(CaConcExt, 2.0) / (uVillusVolume * FaradayConst);
@@ -238,10 +239,10 @@ double f1 = NaCaConst * powf(NaConcInt, 3.0)*powf(CaConcExt, 2.0) / (uVillusVolu
 double f2 = NaCaConst * exp((-V_m[mid]*FaradayConst)/(gasConst*AbsTemp)) * powf(NaConcExt,3.0) / (uVillusVolume * FaradayConst);
 
 //40 (composed of 37,38,39) and NEEDS FIXING MAYBE BECAUSE N AND NS ARE NOT THE SAME??
-double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+ns*CaReleaseRate*activC - f1; 
+double num = netCaCurrent/(2*uVillusVolume * FaradayConst)+nBindingSites*CaReleaseRate*activC - f1;
 //might be a problem that activC isn't a conc?
 double den = ns*CaUptakeRate*CaMConcInt+CaDiffusionRate-f2; //assuming n = ns which is likely wrong
-double steadyStateCa = uVillusVolume*(num/den);
+Ca2 = uVillusVolume*(num/den);
 
 }
 }
