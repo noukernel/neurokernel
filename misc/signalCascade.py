@@ -143,6 +143,7 @@ c[10] = CaUptakeRate/(uVillusVolume*uVillusVolume);
 c[11] = CaReleaseRate;
 
 //need an a vector:
+double a0 = c[0]*h[0];
 double a1 = c[1]*h[1];
 double a2 = c[2]*h[2];
 double a3 = c[3]*h[3];
@@ -154,13 +155,13 @@ double a8 = c[8]*h[8];
 double a9 = c[9]*h[9];
 double a10 = c[10]*h[10];
 double a11 = c[11]*h[11];
-double a12 = c[12]*h[12];
 
-double as = a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11 + a12;
+double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
 
 double av[12];
-av[0] = 0;
+av[0] = h[0]*c[0];
 double hc[12];
+hc[0] = av[0];
 int mu = 0;
 // 12 possible reaction
 for(int ii = 1; ii < 12; ++ii){
