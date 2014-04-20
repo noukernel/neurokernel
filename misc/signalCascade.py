@@ -202,7 +202,7 @@ if(mu == 0) {
     X6 += -hc[mu];
 }
 
-I_in[mid] = mu;
+I_in[mid] = Tcurrent*X7;
 
 }
 }
