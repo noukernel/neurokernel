@@ -218,6 +218,6 @@ Ca2 = numpy.array([1],dtype=numpy.float64)
 Ca2[0] = .00016
 
 signalCascade = mod.get_function("signalCascade")
-signalCascade(drv.Out(I_in), drv.In(V_m), drv.In(Np), drv.In(rand1), drv.In(rand2), block=(1,1,1), grid=(1,1))
+signalCascade(drv.Out(I_in), drv.In(V_m), drv.In(Np), drv.In(rand1), drv.In(rand2), drv.In(Ca2), block=(1,1,1), grid=(1,1))
 
 print I_in
