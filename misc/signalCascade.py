@@ -165,7 +165,7 @@ int mu = 0;
 // 12 possible reaction
 for(int ii = 1; ii < 12; ++ii){
     hc[ii] = c[ii]*h[ii];
-    av[ii] += hc[ii];
+    av[ii] = av[ii-1] + hc[ii];
 
     if((rand2[mid]*as > av[ii - 1]) && (rand2[mid]*as <= av[ii])){
         mu = ii;
