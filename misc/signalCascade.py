@@ -52,7 +52,7 @@ mod = SourceModule("""
 #define CT 0.5
 
 __global__ void signalCascade(
-    int *I_in,
+    double *I_in,
     double *V_m,
     double *Np,
     double *rand1,
@@ -212,7 +212,7 @@ I_in[mid] = Tcurrent*X7;
 Np = numpy.zeros(30000)
 rand1 = numpy.random.uniform(size=30000)
 rand2 = numpy.random.uniform(size=30000)
-I_in = numpy.zeros(30000, dtype=numpy.int32)
+I_in = numpy.zeros(30000, dtype=numpy.float64)
 V_m = numpy.ones(30000) * -0.07
 Ca2 = numpy.array([1],dtype=numpy.float64)
 Ca2[0] = .00016
