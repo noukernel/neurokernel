@@ -67,7 +67,7 @@ __global__ void hodgkin_huxley(
     return;
 }
 
-#define n_micro = 30000.0
+#define n_micro 30000.0
 
 __global__ void rpam( 
     int neu_num,
@@ -84,6 +84,7 @@ __global__ void rpam(
     int factorial = 1; 
 
     factorial = 1;
+    double p[20];
     lambda_m = n_photon[neu_num]/n_micro;
     for(int ii = 0; ii < 20; ++ii){
         if (ii > 0){
@@ -94,12 +95,18 @@ __global__ void rpam(
 
     int num_abs[20];
     for(int ii = 1; ii < 20; ++ii){
-        num_abs[ii] = p[ii]*n_micro;
+        num_abs[ii] = roundf(p[ii]*n_micro);
     }
     num_abs[0] = 0;
+    // CUDA doesn't like doing things in one nice step?
+    int temp;
+    int temp_index;
     for(int ii = 1; ii < 20; ++ii){
         for(int jj = 0; jj < num_abs[ii];++jj){
-            Np[rand[jj+num_abs[ii -1]]] = ii;
+            temp = jj + num_abs[ii-1];
+            temp_index = rand[temp];
+            Np[temp_index] = ii;
+            //Np[rand[jj+num_abs[ii -1]]] = ii;
         }
     }
 
@@ -331,7 +338,7 @@ __global__ void signal_cascade(
 #define C_T 0.5
 #define K_Ca 100
 
-__global__ void calciumDynamics(
+__global__ void calcium_dynamics(
     int neu_num,
 	%(type)s *Ca2,
 	%(type)s *V_m,
