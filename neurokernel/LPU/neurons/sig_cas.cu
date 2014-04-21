@@ -51,7 +51,15 @@ __global__ void signal_cascade(
     %(type)s *Np,
     %(type)s *rand1,
     %(type)s *rand2,
-    %(type)s *Ca2)
+    %(type)s *Ca2,
+    %(type)s *X_1,
+    %(type)s *X_2,
+    %(type)s *X_3,
+    %(type)s *X_4,
+    %(type)s *X_5,
+    %(type)s *X_6,
+    %(type)s *X_7,
+    )
 {
 
     for(int mid = 0; mid < 30000; ++mid){
@@ -67,13 +75,20 @@ __global__ void signal_cascade(
     double Iin = Tcurrent*activT;
 
     //16: state vector:
-    double X1 = Np[mid];
-    double X2 = G;
-    double X3 = activG;
-    double X4 = activPLC;
-    double X5 = activD;
-    double X6 = activC;
-    double X7 = activT;
+    double X1 = X_1[neu_num];
+    double X2 = X_2[neu_num];
+    double X3 = X_3[neu_num];
+    double X4 = X_4[neu_num];
+    double X5 = X_5[neu_num];
+    double X6 = X_6[neu_num];
+    double X7 = X_7[neu_num];
+    //double X1 = Np[mid];
+    //double X2 = G;
+    //double X3 = activG;
+    //double X4 = activPLC;
+    //double X5 = activD;
+    //double X6 = activC;
+    //double X7 = activT;
 
     double h[12];
     //18: reactant pairs - not concentrations??
@@ -168,32 +183,32 @@ __global__ void signal_cascade(
     }
 
     if(mu == 0) {
-        X1 += -hc[mu];
+        X_1[neu_num] += -hc[mu];
     } else if (mu == 1){
-        X2 += -hc[mu];
-        X3 += hc[mu];
+        X_2[neu_num] += -hc[mu];
+        X_3[neu_num] += hc[mu];
     } else if (mu == 2){
-        X3 += -hc[mu];
-        X4 += hc[mu];
+        X_3[neu_num] += -hc[mu];
+        X_4[neu_num] += hc[mu];
     } else if (mu == 3){
-        X3 += -hc[mu];
+        X_3[neu_num] += -hc[mu];
     } else if (mu == 4){
-        X2 += hc[mu];
+        X_2[neu_num] += hc[mu];
     } else if (mu == 5){
-        X5 += hc[mu];
+        X_5[neu_num] += hc[mu];
     } else if (mu == 6){
-        X4 += -hc[mu];
+        X_4[neu_num] += -hc[mu];
     } else if (mu == 7){
-        X5 += -hc[mu];
+        X_5[neu_num] += -hc[mu];
     } else if (mu == 8){
-        X5 += -2 * hc[mu];
-        X7 += hc[mu];
+        X_5[neu_num] += -2 * hc[mu];
+        X_7[neu_num] += hc[mu];
     } else if (mu == 9){
-        X7 += -hc[mu];
+        X_7[neu_num] += -hc[mu];
     } else if (mu == 10){
-        X6 += hc[mu];
+        X_6[neu_num] += hc[mu];
     } else {
-        X6 += -hc[mu];
+        X_6[neu_num] += -hc[mu];
     }
 
     I_in[mid] = Tcurrent*X7;
