@@ -64,16 +64,6 @@ __global__ void signal_cascade(
 
     for(int mid = 0; mid < 30000; ++mid){
 
-    //intial conditions given as zero for almost everything:
-    double G = 50;
-    double activG = 0;
-    double activPLC = 0;
-    double activD = 0;
-    double activC = 0;
-    double activT = 0;
-
-    double Iin = Tcurrent*activT;
-
     //16: state vector:
     double X1 = X_1[neu_num];
     double X2 = X_2[neu_num];
@@ -90,28 +80,28 @@ __global__ void signal_cascade(
     //double X6 = activC;
     //double X7 = activT;
 
+    double Iin = Tcurrent*X7;
+
     double h[12];
     //18: reactant pairs - not concentrations??
-    h[0] = Np[mid];
-    h[1] = Np[mid]*G;
-    h[2] = activG*(PLCT - activPLC);
-    h[3] = activG*activPLC;
-    h[4] = GT-activG-G-activPLC;
-    h[5] = activPLC;
-    h[6] = activPLC; //NOT A TYPO
-    h[7] = activD;
-    h[8] = (activD*(activD-1)*(TT-activT))/2;
-    h[9] = activT;
-    h[10] = (CT - activC)*Ca2[0];
-    h[11] = activC;
+    h[0] = X1;
+    h[1] = X1*X2;
+    h[2] = X3*(PLCT - X4);
+    h[3] = X3*X4;
+    h[4] = GT-X2-X3-X4;
+    h[5] = X4;
+    h[6] = X4; //NOT A TYPO
+    h[7] = X5;
+    h[8] = (X5*(X5-1)*(TT-X7))/2;
+    h[9] = X7;
+    h[10] = (CT - X6)*Ca2[neu_num];
+    h[11] = X6;
 
     //31
-    double fp = (powf((Ca2[0]/Kp), mp)) / (1+powf((Ca2[0]/Kp), mp));
+    double fp = (powf((Ca2[neu_num]/Kp), mp)) / (1+powf((Ca2[neu_num]/Kp), mp));
 
     //32
-    double fn = ns * powf((activC/Kn), mn)/(1+(powf((activC/Kn), mn)));
-    //might be a problem wtih activC vs activeCint not being the same thing
-
+    double fn = ns * powf((X6/Kn), mn)/(1+(powf((X6/Kn), mn)));
 
     double c[12];
 
@@ -211,7 +201,7 @@ __global__ void signal_cascade(
         X_6[neu_num] += -hc[mu];
     }
 
-    I_in[mid] = Tcurrent*X7;
+    I_in[mid] = Tcurrent*X_7[neu_num];
 
     }
 }
