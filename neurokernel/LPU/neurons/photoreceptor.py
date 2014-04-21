@@ -29,12 +29,14 @@ class Photoreceptor(BaseNeuron):
         # RPAM Inputs/Outputs
         self.n_photons = garray.to_gpu( np.asarray( random.randint(100,999), dtype=np.float64 ))
         self.Np = garray.to_gpu( np.zeros(30000, dtype=np.float64 ))
-        self.rand_index = garray.to_gpu( np.random.shuffle(numpy.array(range(30000)) ))
+        r_n = np.array(range(30000))
+        np.random.shuffle( r_n )
+        self.rand_index = garray.to_gpu( r_n )
 
         # Signal Cascade Inputs/Outputs
         # FIXME: Should I_in be the same as I?
-        self.rand1 = garray.to_gpu( np.random.uniform(30000 ))
-        self.rand2 = garray.to_gpu( np.random.uniform(30000 ))
+        self.rand1 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = 30000 ))
+        self.rand2 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = 30000 ))
         self.Ca2 = garray.to_gpu( np.asarray( 0.00016, dtype=np.float64 ))
         # FIXME: Supposed to be Np[some id], but that doesn't exist yet...
         self.X_1 = garray.to_gpu( np.asarray( 0, dtype=np.float64 ))
@@ -99,7 +101,7 @@ class Photoreceptor(BaseNeuron):
                 self.Ca2.gpudata,\
                 self.V,\
                 self.I.gpudata,\
-                self.X_6.gpudata} # X_6 is C_star
+                self.X_6.gpudata) # X_6 is C_star
 
         self.update.prepared_async_call(\
             self.gpu_grid,\

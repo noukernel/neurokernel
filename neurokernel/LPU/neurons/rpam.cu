@@ -5,9 +5,7 @@ __global__ void rpam(
     int neu_num,
     %(type)s *Np, 
     %(type)s *n_photon, 
-    %(type)s *rand, 
-    %(type)s *p
-    ) 
+    %(type)s *rand) 
 { 
     bool not_converged = true; 
     %(type)s lambda_m, n_m, fe, fa, n_m_temp; 
