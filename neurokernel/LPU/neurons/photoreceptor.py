@@ -175,145 +175,139 @@ __global__ void signal_cascade(
 {
 
     for(int mid = 0; mid < 30000; ++mid){
+        nid = (mid * neu_num) + mid;
 
-    //16: state vector:
-    double X1 = X_1[neu_num];
-    double X2 = X_2[neu_num];
-    double X3 = X_3[neu_num];
-    double X4 = X_4[neu_num];
-    double X5 = X_5[neu_num];
-    double X6 = X_6[neu_num];
-    double X7 = X_7[neu_num];
-    //double X1 = Np[mid];
-    //double X2 = G;
-    //double X3 = activG;
-    //double X4 = activPLC;
-    //double X5 = activD;
-    //double X6 = activC;
-    //double X7 = activT;
+        //16: state vector:
+        double X1 = X_1[nid];
+        double X2 = X_2[nid];
+        double X3 = X_3[nid];
+        double X4 = X_4[nid];
+        double X5 = X_5[nid];
+        double X6 = X_6[nid];
+        double X7 = X_7[nid];
 
-    double Iin = Tcurrent*X7;
+        double Iin = Tcurrent*X7;
 
-    double h[12];
-    //18: reactant pairs - not concentrations??
-    h[0] = X1;
-    h[1] = X1*X2;
-    h[2] = X3*(PLCT - X4);
-    h[3] = X3*X4;
-    h[4] = GT-X2-X3-X4;
-    h[5] = X4;
-    h[6] = X4; //NOT A TYPO
-    h[7] = X5;
-    h[8] = (X5*(X5-1)*(TT-X7))/2;
-    h[9] = X7;
-    h[10] = (CT - X6)*Ca2[neu_num];
-    h[11] = X6;
+        double h[12];
+        //18: reactant pairs - not concentrations??
+        h[0] = X1;
+        h[1] = X1*X2;
+        h[2] = X3*(PLCT - X4);
+        h[3] = X3*X4;
+        h[4] = GT-X2-X3-X4;
+        h[5] = X4;
+        h[6] = X4; //NOT A TYPO
+        h[7] = X5;
+        h[8] = (X5*(X5-1)*(TT-X7))/2;
+        h[9] = X7;
+        h[10] = (CT - X6)*Ca2[neu_num];
+        h[11] = X6;
 
-    //31
-    double fp = (powf((Ca2[neu_num]/Kp), mp)) / (1+powf((Ca2[neu_num]/Kp), mp));
+        //31
+        double fp = (powf((Ca2[neu_num]/Kp), mp)) / (1+powf((Ca2[neu_num]/Kp), mp));
 
-    //32
-    double fn = ns * powf((X6/Kn), mn)/(1+(powf((X6/Kn), mn)));
+        //32
+        double fn = ns * powf((X6/Kn), mn)/(1+(powf((X6/Kn), mn)));
 
-    double c[12];
+        double c[12];
 
-    //19
-    c[0] = DrateM * (1+hM*fn);
+        //19
+        c[0] = DrateM * (1+hM*fn);
 
-    //20
-    c[1] = ArateG;
+        //20
+        c[1] = ArateG;
 
-    //21
-    c[2] = AratePLC;
+        //21
+        c[2] = AratePLC;
 
-    //22
-    c[3] = DrateGAP;
+        //22
+        c[3] = DrateGAP;
 
-    //23
-    c[4] = DrateG;
+        //23
+        c[4] = DrateG;
 
-    //24
-    c[5] = ArateD;
+        //24
+        c[5] = ArateD;
 
-    //25
-    c[6] = DratePLC * (1+hPLC*fn);
+        //25
+        c[6] = DratePLC * (1+hPLC*fn);
 
-    //26
-    c[7] = DrateD*(1+hD*fn);
+        //26
+        c[7] = DrateD*(1+hD*fn);
 
-    //27
-    c[8] = (ArateT*(1+hTpos*fp))/(ArateK*ArateK);
+        //27
+        c[8] = (ArateT*(1+hTpos*fp))/(ArateK*ArateK);
 
-    //28
-    c[9] = DrateT*(1+hTneg*fn);
+        //28
+        c[9] = DrateT*(1+hTneg*fn);
 
-    //29
-    c[10] = CaUptakeRate/(uVillusVolume*uVillusVolume);
+        //29
+        c[10] = CaUptakeRate/(uVillusVolume*uVillusVolume);
 
-    //30
-    c[11] = CaReleaseRate;
+        //30
+        c[11] = CaReleaseRate;
 
-    //need an a vector:
-    double a0 = c[0]*h[0];
-    double a1 = c[1]*h[1];
-    double a2 = c[2]*h[2];
-    double a3 = c[3]*h[3];
-    double a4 = c[4]*h[4];
-    double a5 = c[5]*h[5];
-    double a6 = c[6]*h[6];
-    double a7 = c[7]*h[7];
-    double a8 = c[8]*h[8];
-    double a9 = c[9]*h[9];
-    double a10 = c[10]*h[10];
-    double a11 = c[11]*h[11];
+        //need an a vector:
+        double a0 = c[0]*h[0];
+        double a1 = c[1]*h[1];
+        double a2 = c[2]*h[2];
+        double a3 = c[3]*h[3];
+        double a4 = c[4]*h[4];
+        double a5 = c[5]*h[5];
+        double a6 = c[6]*h[6];
+        double a7 = c[7]*h[7];
+        double a8 = c[8]*h[8];
+        double a9 = c[9]*h[9];
+        double a10 = c[10]*h[10];
+        double a11 = c[11]*h[11];
 
-    double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
+        double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
 
-    double av[12];
-    av[0] = h[0]*c[0];
-    double hc[12];
-    hc[0] = av[0];
-    int mu = 0;
-    // 12 possible reaction
-    for(int ii = 1; ii < 12; ++ii){
-        hc[ii] = c[ii]*h[ii];
-        av[ii] = av[ii-1] + hc[ii];
+        double av[12];
+        av[0] = h[0]*c[0];
+        double hc[12];
+        hc[0] = av[0];
+        int mu = 0;
+        // 12 possible reaction
+        for(int ii = 1; ii < 12; ++ii){
+            hc[ii] = c[ii]*h[ii];
+            av[ii] = av[ii-1] + hc[ii];
 
-        if((rand2[mid]*as > av[ii - 1]) && (rand2[mid]*as <= av[ii])){
-            mu = ii;
+            if((rand2[mid]*as > av[ii - 1]) && (rand2[mid]*as <= av[ii])){
+                mu = ii;
+            }
         }
-    }
 
-    if(mu == 0) {
-        X_1[neu_num] += -hc[mu];
-    } else if (mu == 1){
-        X_2[neu_num] += -hc[mu];
-        X_3[neu_num] += hc[mu];
-    } else if (mu == 2){
-        X_3[neu_num] += -hc[mu];
-        X_4[neu_num] += hc[mu];
-    } else if (mu == 3){
-        X_3[neu_num] += -hc[mu];
-    } else if (mu == 4){
-        X_2[neu_num] += hc[mu];
-    } else if (mu == 5){
-        X_5[neu_num] += hc[mu];
-    } else if (mu == 6){
-        X_4[neu_num] += -hc[mu];
-    } else if (mu == 7){
-        X_5[neu_num] += -hc[mu];
-    } else if (mu == 8){
-        X_5[neu_num] += -2 * hc[mu];
-        X_7[neu_num] += hc[mu];
-    } else if (mu == 9){
-        X_7[neu_num] += -hc[mu];
-    } else if (mu == 10){
-        X_6[neu_num] += hc[mu];
-    } else {
-        X_6[neu_num] += -hc[mu];
-    }
+        if(mu == 0) {
+            X_1[nid] += -hc[mu];
+        } else if (mu == 1){
+            X_2[nid] += -hc[mu];
+            X_3[nid] += hc[mu];
+        } else if (mu == 2){
+            X_3[nid] += -hc[mu];
+            X_4[nid] += hc[mu];
+        } else if (mu == 3){
+            X_3[nid] += -hc[mu];
+        } else if (mu == 4){
+            X_2[nid] += hc[mu];
+        } else if (mu == 5){
+            X_5[nid] += hc[mu];
+        } else if (mu == 6){
+            X_4[nid] += -hc[mu];
+        } else if (mu == 7){
+            X_5[nid] += -hc[mu];
+        } else if (mu == 8){
+            X_5[nid] += -2 * hc[mu];
+            X_7[nid] += hc[mu];
+        } else if (mu == 9){
+            X_7[nid] += -hc[mu];
+        } else if (mu == 10){
+            X_6[nid] += hc[mu];
+        } else {
+            X_6[nid] += -hc[mu];
+        }
 
-    I_in[mid] = Tcurrent*X_7[neu_num];
+        I_in[nid] = Tcurrent*X_7[nid];
 
     }
 }
@@ -340,29 +334,39 @@ __global__ void signal_cascade(
 
 __global__ void calcium_dynamics(
     int neu_num,
+    %(type)s *I_in
 	%(type)s *Ca2,
 	%(type)s *V_m,
-	%(type)s *I_in,
+	%(type)s *I,
 	%(type)s *C_star)
 {
+    for(int mid = 0; mid < 30000; ++mid){
 
-    double I_Ca = I_in[neu_num] * P_Ca;
-    double I_NaCa = K_NaCa * (powf(Na_i,3.0) * Ca_o - powf(Na_o,3.0) * Ca2[neu_num] * exp((-V_m[neu_num]*F) / (R*T)));
+        nid = mid*neu_num + mid;
 
-    //36
-    double I_CaNet = I_Ca - 2*I_NaCa;
+        double I_Ca = I_in[nid] * P_Ca;
+        double I_NaCa = K_NaCa * (powf(Na_i,3.0) * Ca_o - powf(Na_o,3.0) * Ca2[neu_num] * exp((-V_m[neu_num]*F) / (R*T)));
 
-    //41
-    double f1 = K_NaCa * powf(Na_i, 3.0)*Ca_o / (v*F);
-    //42
-    double f2 = (K_NaCa * exp((-V_m[neu_num]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
+        //36
+        double I_CaNet = I_Ca - 2*I_NaCa;
 
-    //40 (composed of 37,38,39)
-    Ca2[neu_num] = v*(I_CaNet/(2*v*F) + n*K_r*C_star[neu_num] - f1)/(n*K_u*(C_T - C_star[neu_num]) + K_Ca - f2);
+        //41
+        double f1 = K_NaCa * powf(Na_i, 3.0)*Ca_o / (v*F);
+        //42
+        double f2 = (K_NaCa * exp((-V_m[neu_num]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
 
+        //40 (composed of 37,38,39)
+        Ca2[neu_num] = v*(I_CaNet/(2*v*F) + n*K_r*C_star[neu_num] - f1)/(n*K_u*(C_T - C_star[neu_num]) + K_Ca - f2);
+
+        I[neu_num] += I_in[nid];
+    }
+    
+    I[neu_num] = I[neu_num] * pow(10, 5);
 }
 
 """
+# FIXME above: What is the actual scaling factor for LIC?
+
 
 class Photoreceptor(BaseNeuron):
     def __init__(self, n_dict, V, dt, debug=False, LPU_id=None):
@@ -389,17 +393,18 @@ class Photoreceptor(BaseNeuron):
 
         # Signal Cascade Inputs/Outputs
         # FIXME: Should I_in be the same as I?
+        self.I_in = garray,to_gpu( np.zeros(30000, dtype=np.float64 ))
         self.rand1 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = 30000 ))
         self.rand2 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = 30000 ))
         self.Ca2 = garray.to_gpu( np.asarray( 0.00016, dtype=np.float64 ))
         # FIXME: Supposed to be Np[some id], but that doesn't exist yet...
-        self.X_1 = garray.to_gpu( np.asarray( 0, dtype=np.float64 ))
-        self.X_2 = garray.to_gpu( np.asarray( 50, dtype=np.float64 ))
-        self.X_3 = garray.to_gpu( np.asarray( 0, dtype=np.float64 ))
-        self.X_4 = garray.to_gpu( np.asarray( 0, dtype=np.float64 ))
-        self.X_5 = garray.to_gpu( np.asarray( 0, dtype=np.float64 ))
-        self.X_6 = garray.to_gpu( np.asarray( 0, dtype=np.float64 ))
-        self.X_7 = garray.to_gpu( np.asarray( 0, dtype=np.float64 ))
+        self.X_1 = garray.to_gpu( np.zeros( 30000, dtype=np.float64 ))
+        self.X_2 = garray.to_gpu( np.ones( 30000, dtype=np.float64 ) * 50)
+        self.X_3 = garray.to_gpu( np.zeros( 30000, dtype=np.float64 ))
+        self.X_4 = garray.to_gpu( np.zeros( 30000, dtype=np.float64 ))
+        self.X_5 = garray.to_gpu( np.zeros( 30000, dtype=np.float64 ))
+        self.X_6 = garray.to_gpu( np.zeros( 30000, dtype=np.float64 ))
+        self.X_7 = garray.to_gpu( np.zeros( 30000, dtype=np.float64 ))
 
         # No unique inputs/outputs for Calcium Dynamics
 
@@ -434,6 +439,7 @@ class Photoreceptor(BaseNeuron):
                 self.gpu_grid,\
                 self.gpu_block,\
                 self.num_neurons,\
+                self.I_in.gpudata,\
                 self.I.gpudata,\
                 self.V,\
                 self.Np.gpudata,\
@@ -452,6 +458,7 @@ class Photoreceptor(BaseNeuron):
                 self.gpu_grid,\
                 self.gpu_block,\
                 self.num_neurons,\
+                self.I_in.gpudata,\
                 self.Ca2.gpudata,\
                 self.V,\
                 self.I.gpudata,\
@@ -498,6 +505,7 @@ class Photoreceptor(BaseNeuron):
         func = mod.get_function("signal_cascade")
         func.prepare( [ np.int32, # neu_num
                         np.intp,   # I_in
+                        np.intp,   # I
                         np.intp,   # V_m
                         np.intp,   # Np
                         np.intp,   # rand1
@@ -522,9 +530,10 @@ class Photoreceptor(BaseNeuron):
                 options=["--ptxas-options=-v"])
         func = mod.get_function("calcium_dynamics")
         func.prepare( [ np.int32, # neu_num
+                        np.intp, # I_in
                         np.intp, # Ca2
                         np.intp, # V_m
-                        np.intp, # I_in
+                        np.intp, # I
                         np.intp  # C_star/X[6]
                         ])
         return func

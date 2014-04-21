@@ -19,7 +19,7 @@
 #define C_T 0.5
 #define K_Ca 100
 
-__global__ void calciumDynamics(
+__global__ void calcium_dynamics(
     int neu_num,
 	%(type)s *Ca2,
 	%(type)s *V_m,
