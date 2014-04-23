@@ -1,8 +1,8 @@
-function [X, t, abs] = Signal_Cascade(X_old, t, T_ph, N_ph, h, c)
+function [X, t] = Signal_Cascade(X_old, t, h, c)
 
 mu = 1;                     % Reaction to perform each dt
-av = zeros(1,7);            % For determining mu
-la = 1;
+av = zeros(1,12);            % For determining mu
+la = 0.5;
 parameters;
 
 %% Phototransduction
@@ -12,8 +12,9 @@ X = X_old;
 r1 = rand;
     
 as = dot(h,c);
-dt = (1/(la + as)) * log(1/r1);
-    
+dt = 1e-3; %(1/(la + as)) * log(1/r1);
+
+%{    
 % If our random timestep includes a photon...
 if ((t + dt) > T_ph)
     t = T_ph;
@@ -23,7 +24,16 @@ else
     t = t + dt;
     abs = false;
 end
-    
+%}   
+
+t = t + dt;
+
+r3 = rand;
+if (r3 > 0.5)
+    X(1) = X(1) + 1;
+end
+
+
 r2 = rand;
 
 % To determine which reaction to perform in this time step
