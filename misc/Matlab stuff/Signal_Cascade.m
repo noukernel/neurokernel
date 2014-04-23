@@ -2,27 +2,8 @@ function [X, t, abs] = Signal_Cascade(X_old, t, T_ph, N_ph, h, c)
 
 mu = 1;                     % Reaction to perform each dt
 av = zeros(1,7);            % For determining mu
-la = 0.5;
-n_s = 2;
+la = 1;
 parameters;
-
-% Transition matrix
-V = zeros(7,12);
-V(1,1) = -1;
-V(2,2) = -1;
-V(2,5) = 1;
-V(3,2) = 1;
-V(3,3) = -1;
-V(3,4) = -1;
-V(4,3) = 1;
-V(4,7) = -1;
-V(5,6) = 1;
-V(5,8) = -1;
-V(5,9) = -2;
-V(6,11) = 1;
-V(6,12) = -1;
-V(7,9) = 1;
-V(7,10) = -1;
 
 %% Phototransduction
 X = X_old;
@@ -58,23 +39,46 @@ for k = 2:length(av)
 end
 
 % Update X(mu)
-temp = 0;
+hc = zeros(1,12);
 for m = 1:12
-    temp = temp + V(mu,m)*h(m)*c(m);
-end
-    
-for z = 1:7
-    if z == mu
-        X(z) = X(z) + temp;
-    else
-        X(z) = X(z);
-    end
-    
-    if X(z) < 0
-        X(z) = 0;
-    end
+    hc(m) = h(m)*c(m);
 end
 
+%V Transition Matrix
+if(mu == 1) 
+    X(1) = X(1) - hc(mu);
+elseif (mu == 2)
+    X(2) = X(2) - hc(mu);
+    X(3) = X(3) + hc(mu);
+elseif (mu == 3)
+    X(3) = X(3) - hc(mu);
+    X(4) = X(4) + hc(mu);
+elseif (mu == 4)
+    X(3) = X(3) - hc(mu);
+elseif (mu == 5)
+    X(2) = X(2) + hc(mu);
+elseif (mu == 6)
+    X(5) = X(5) + hc(mu);
+elseif (mu == 7)
+    X(4) = X(4) - hc(mu);
+elseif (mu == 8)
+    X(5) = X(5) - hc(mu);
+elseif (mu == 9)
+    X(5) = X(5) - 2*hc(mu);
+    X(7) = X(7) + hc(mu);
+elseif (mu == 10)
+    X(7) = X(7) - hc(mu);
+elseif (mu == 11)
+    X(6) = X(6) + hc(mu);
+else
+    X(6) = X(6) - hc(mu);
+end
+
+for m = 1:7
+    if X(m) < 0
+        X(m) = 0;
+    end
+end
 
 
 end

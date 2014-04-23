@@ -104,10 +104,10 @@ while tt < tend
     I_in(ii) = I_Tstar * X{7}(i);      
     I_Ca = P_Ca * I_in(ii);         
     I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2*exp(V_m*F/R/T)));
-    I_Canet = I_Ca - 2*I_NaCa;  % Not sure we need this one
+    I_Canet = I_Ca + 2*I_NaCa;  % Sign??????????
     
     % Update Calcium
-    Ca2 = v*((I_Ca/2/v/F) + n*K_r*X{6}(ii) - f1)/(n*K_u*(C_T - X{6}(ii)) + K_Ca - f2);
+    Ca2 = v*((I_Canet/2/v/F) + n*K_r*X{6}(ii) - f1)/(n*K_u*(C_T - X{6}(ii)) + K_Ca - f2);
     
     % Update h
     h = [X{1,ii}(1); X{1,ii}(1)*X{2,ii}(1); X{3,ii}(1)*(PLC_T - X{4,ii}(1)); X{3,ii}(1)*X{4,ii}(1); 
