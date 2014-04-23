@@ -56,7 +56,7 @@ X{5}(1) = 0;
 X{6}(1) = 0;
 X{7}(1) = 0;
 
-Ca2 = 160e-9; 
+Ca2 = 160e-6; 
 
 % Hill functions for positive and negative calcium feedback
 fp = ((Ca2/K_p)^m_p)/(1+(Ca2/K_p)^m_p);
@@ -69,7 +69,7 @@ h = [X{1}(1); X{1}(1)*X{2}(1); X{3}(1)*(PLC_T - X{4}(1)); X{3}(1)*X{4}(1);
 c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP; 
     Gamma_G; Kappa_Dstar; Gamma_PLCstar*(1+h_PLCstar*fn); 
     Gamma_Dstar*(1+h_Dstar*fn); Kappa_Tstar*(1+h_TstarP*fp)/Kappa_Dstar^2;
-    Gamma_Tstar*(1+h_TstarN*fn); K_u/v^2; K_r];
+    Gamma_Tstar*(1+h_TstarN*fn); K_u; K_r];
 
 I_in = I_Tstar * X{7}(1);      % Initialize input current (X(7,1) is Tstar)
 I_Ca = P_Ca * I_in;         % Calcium Current ~40%
@@ -109,7 +109,7 @@ while t < tend
     I_Canet = I_Ca + 2*I_NaCa;
     
     % Update Calcium
-    Ca2 = v*((I_Canet/2/v/F) + n*K_r*X{6}(i) - f1)/(n*K_u*(C_T - X{6}(i)) + K_Ca - f2);
+    Ca2 = v*((I_Canet/2/v/F) + n*K_r*X{6}(i) + f1)/(n*K_u*(C_T - X{6}(i)) + K_Ca + f2);
     
     % Update h
     h = [X{1}(i); X{1}(i)*X{2}(i); X{3}(i)*(PLC_T - X{4}(i)); X{3}(i)*X{4}(i); 
