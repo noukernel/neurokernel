@@ -1,4 +1,4 @@
-function [X, t] = Signal_Cascade(X_old, t, h, c)
+function [X, t, mu] = Signal_Cascade(X_old, t, h, c)
 
 mu = 1;                     % Reaction to perform each dt
 av = zeros(1,12);            % For determining mu
@@ -27,12 +27,14 @@ end
 %}   
 
 t = t + dt;
-
+%{
 r3 = rand;
 if (r3 > 0.5)
-    X(1) = X(1) + 1;
+    X(1) = 1;
+else
+    X(1) = 0;
 end
-
+%}
 
 r2 = rand;
 
@@ -47,6 +49,8 @@ for k = 2:length(av)
     end
         
 end
+
+zz = av';
 
 % Update X(mu)
 hc = zeros(1,12);
