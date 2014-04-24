@@ -37,7 +37,7 @@ end
 t = 0;
 tend = 1;
 la = 0.5;
-n_s = 1;
+n_s = 2;
 
 K_p = 0.3;
 K_n = 0.18;
@@ -90,7 +90,7 @@ NA = 6.02e23;
 
 X = cell(7,1);
 Ca2 = zeros(1,1);
-mu = zeros(1,1);
+av = zeros(1,12);
 
 %for ii = 1:30000
 
@@ -109,22 +109,29 @@ X{7}(1) = 0;
 Ca2(1) = Ca_id; 
 
 % Hill functions for positive and negative calcium feedback
-fp = ((Ca2(1)/K_p)^m_p)/(1+(Ca2(1)/K_p)^m_p);
+fp = ((Ca2(1)/v/K_p)^m_p)/(1+(Ca2(1)/v/K_p)^m_p);
 fn = n_s*((X{6}(1)/K_n)^m_n)/(1+(X{6}(1)/K_n)^m_n);
 
 h = [X{1}(1); X{1}(1)*X{2}(1); X{3}(1)*(PLC_T - X{4}(1)); X{3}(1)*X{4}(1); 
     (G_T - X{3}(1) - X{2}(1) - X{4}(1)); X{4}(1); X{4}(1); X{5}(1); 
-    .5*(X{5}(1)*(X{5}(1)-1)*(T_T-X{7}(1))); X{7}(1); Ca2(1)*v*NA*10^(-9)*(903.3 - X{6}(1)); X{6}(1)];
+    .5*(X{5}(1)*(X{5}(1)-1)*(T_T-X{7}(1))); X{7}(1); Ca2(1)*NA*10^(-9)*(903.3 - X{6}(1)); X{6}(1)];
 
 c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP; 
     Gamma_G; Kappa_Dstar; Gamma_PLCstar*(1+h_PLCstar*fn); 
     Gamma_Dstar*(1+h_Dstar*fn); Kappa_Tstar*(1+h_TstarP*fp)/Kappa_Dstar^2;
     Gamma_Tstar*(1+h_TstarN*fn); K_u; K_r];
 
+av(1) = dot(h(1:1),c(1:1)); 
+for k = 2:length(av)
+        
+    av(k) = dot(h(1:k),c(1:k));
+   
+end
+
 I_in = I_Tstar * X{7}(1);      % Initialize input current (X(7,1) is Tstar)
 I_Ca = P_Ca * I_in;         % Calcium Current ~40%
 I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2(1)*exp(-V_m*F/R/T)));
-I_Canet = I_Ca + 2*I_NaCa;
+I_Canet = I_Ca - 2*I_NaCa;
 
 i = 1;          % X iterator (how many times Signal_Cascade was called)
 %ii = 1;         % T_ph iterator (next photon absorption)
@@ -135,7 +142,7 @@ while (t < tend)
     
     X_old = [X{1}(i), X{2}(i), X{3}(i), X{4}(i), X{5}(i), X{6}(i), X{7}(i)];
     
-    [Z, t, nu] = Signal_Cascade(X_old, t, h, c);
+    [Z, t, avz] = Signal_Cascade(X_old, t, h, c);
     
     %tt = tt + 1;%t_new;
     
@@ -152,15 +159,15 @@ while (t < tend)
         X{m} = [X{m} Z(m)];
     end
     
-    mu = [mu nu];
+    av = [av; avz];
     
     % Update h
     h = [X{1}(i); X{1}(i)*X{2}(i); X{3}(i)*(PLC_T - X{4}(i)); X{3}(i)*X{4}(i); 
     (G_T - X{3}(i) - X{2}(i) - X{4}(i)); X{4}(i); X{4}(i); X{5}(i); 
-    .5*(X{5}(i)*(X{5}(i)-1)*(T_T-X{7}(i))); X{7}(i); Ca2(i-1)*v*NA*10^(-9)*(903.3 - X{6}(i)); X{6}(i)];
+    .5*(X{5}(i)*(X{5}(i)-1)*(T_T-X{7}(i))); X{7}(i); Ca2(i-1)*NA*10^(-9)*(903.3 - X{6}(i)); X{6}(i)];
     
     % Update fp, fn
-    fp = ((Ca2(i-1)/K_p)^m_p)/(1+(Ca2(i-1)/K_p)^m_p);
+    fp = ((Ca2(i-1)/v/K_p)^m_p)/(1+(Ca2(i-1)/v/K_p)^m_p);
     fn = n_s*((X{6}(1)/K_n)^m_n)/(1+(X{6}(1)/K_n)^m_n);
     
     % Update c
@@ -173,7 +180,7 @@ while (t < tend)
     I_in = I_Tstar * X{7}(i);      
     I_Ca = P_Ca * I_in;         
     I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2(i-1)*exp(-V_m*F/R/T)));
-    I_Canet = I_Ca + 2*I_NaCa;
+    I_Canet = I_Ca - 2*I_NaCa;
     
     % Update Calcium
     Ca2 = [Ca2 v*((I_Canet/2/v/F) + n*K_r*X{6}(i) + f1)/(n*K_u*(903.3 - X{6}(i))/v + K_Ca + f2)];
@@ -224,6 +231,7 @@ subplot(428);
 plot(Ca2);
 
 figure;
-plot(mu);
-
+for i = 1:12
+    plot(av(:,i));
+end
 
