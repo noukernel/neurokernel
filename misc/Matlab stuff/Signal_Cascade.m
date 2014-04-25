@@ -28,13 +28,6 @@ end
 
 t = t + dt;
 
-r3 = rand;
-if (r3 > 0.99)
-    X(1) = 1;
-else
-    X(1) = 0;
-end
-
 
 r2 = rand;
 
@@ -60,32 +53,32 @@ end
 
 %V Transition Matrix
 if(mu == 1) 
-    X(1) = X(1) - hc(mu);
+    X(1) = X(1) - 1;
 elseif (mu == 2)
-    X(2) = X(2) - hc(mu);
-    X(3) = X(3) + hc(mu);
+    X(2) = X(2) - 1;
+    X(3) = X(3) + 1;
 elseif (mu == 3)
-    X(3) = X(3) - hc(mu);
-    X(4) = X(4) + hc(mu);
+    X(3) = X(3) - 1;
+    X(4) = X(4) + 1;
 elseif (mu == 4)
-    X(3) = X(3) - hc(mu);
+    X(3) = X(3) - 1;
 elseif (mu == 5)
-    X(2) = X(2) + hc(mu);
+    X(2) = X(2) + 1;
 elseif (mu == 6)
-    X(5) = X(5) + hc(mu);
+    X(5) = X(5) + 1;
 elseif (mu == 7)
-    X(4) = X(4) - hc(mu);
+    X(4) = X(4) - 1;
 elseif (mu == 8)
-    X(5) = X(5) - hc(mu);
+    X(5) = X(5) - 1;
 elseif (mu == 9)
-    X(5) = X(5) - 2*hc(mu);
-    X(7) = X(7) + hc(mu);
+    X(5) = X(5) - 2;
+    X(7) = X(7) + 1;
 elseif (mu == 10)
-    X(7) = X(7) - hc(mu);
+    X(7) = X(7) - 1;
 elseif (mu == 11)
-    X(6) = X(6) + hc(mu);
+    X(6) = X(6) + 1;
 else
-    X(6) = X(6) - hc(mu);
+    X(6) = X(6) - 1;
 end
 
 for m = 1:7
