@@ -174,32 +174,32 @@ for(int ii = 1; ii < 12; ++ii){
 }
 
 if(mu == 0) {
-    X1 += -hc[mu];
+    X1 += -1;
 } else if (mu == 1){
-    X2 += -hc[mu];
-    X3 += hc[mu];
+    X2 += -1;
+    X3 += 1;
 } else if (mu == 2){
-    X3 += -hc[mu];
-    X4 += hc[mu];
+    X3 += -1;
+    X4 += 1;
 } else if (mu == 3){
-    X3 += -hc[mu];
+    X3 += -1;
 } else if (mu == 4){
-    X2 += hc[mu];
+    X2 += 1;
 } else if (mu == 5){
-    X5 += hc[mu];
+    X5 += 1;
 } else if (mu == 6){
-    X4 += -hc[mu];
+    X4 += -1;
 } else if (mu == 7){
-    X5 += -hc[mu];
+    X5 += -1;
 } else if (mu == 8){
-    X5 += -2 * hc[mu];
-    X7 += hc[mu];
+    X5 += -2;
+    X7 += 1;
 } else if (mu == 9){
-    X7 += -hc[mu];
+    X7 += -1;
 } else if (mu == 10){
-    X6 += hc[mu];
+    X6 += 1;
 } else {
-    X6 += -hc[mu];
+    X6 += -1;
 }
 
 I_in[mid] = mu;
