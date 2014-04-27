@@ -12,57 +12,59 @@ import random
 
 cuda_src = """
 #define NNEU %(nneu)d
-#define E0 -77
-#define E1 50
-#define E2 -54.387
-#define g0 36
-#define g1 120
-#define g2 0.3
+#define E_K -85
+#define E_Cl -30
+#define G_s 1.6
+#define G_dr 3.5
+#define G_Cl 0.056
+#define G_K 0.082
+#define C 4
 
 __global__ void hodgkin_huxley(
     int neu_num,
     %(type)s dt,
     %(type)s *V,
     %(type)s *I,
-    %(type)s *X0,
-    %(type)s *X1,
-    %(type)s *X2)
+    %(type)s *SA,
+    %(type)s *SI,
+    %(type)s *DRA,
+    %(type)s *DRI)
 {
     int bid = blockIdx.x;
     int nid = bid * NNEU + threadIdx.x;
 
-    %(type)s v, i_ext, x0, x1, x2;
+    %(type)s v, i_ext, sa, si, dra, dri;
 
     if( nid < neu_num ){
         v = V[nid];
         i_ext = I[nid];
-        x0 = X0[nid];
-        x1 = X1[nid];
-        x2 = X2[nid];
+        sa = SA[nid];
+        si = SI[nid];
+        dra = DRA[nid];
+        dri = DRI[nid]
 
-        v = v + ( ( i_ext - (g1*pow(x1,3)*x2*(v-50)) - (g0*pow(x0, 4)*(v+77)) - (g2*(v+54.387))) * dt);
+        %(type)s inf, tau;
+        // Calculate d_sa
+        inf = powf(1 / (1 + exp( (-30-v) / 13.5)) , 1/3);
+        tau = 0.13 + 3.39 * exp( -powf((-73-v),2) / pow(20,2) );
+        SA[nid] = sa + ((inf - sa) / tau) * dt;
 
-        %(type)s a;
-        a = exp(-(v+55)/10) - 1;
-        if (a == 0){
-            x0 = x0+((((1 - x0) * 0.1) - (x0 * 0.125 * exp(-(v+65)/80))) * dt);
-        } else {
-            x0 = x0+(( (1-x0) * (-0.01*(v+55)/a) - (x0 * (0.125 * exp(-(v+65)/80))) )*dt);
-        }
+        // Calculate d_si
+        inf = 1 / (1 + exp((-55 - v) / -5.5) );
+        tau = 113 * exp( - powf((-71-v) , 2) / pow(29,2));
+        SI[nid] = si + ((inf - si) / tau) * dt;
 
-        a = exp(-(v+40)/10)-1;
-        if (a == 0){
-            x1 = x1 + (( (1-x1) - (x1*(4*exp(-(v+65)/18)))) * dt);
-        } else {
-            x1 = x1 + (( ((1-x1) * (-0.1*(v+40)/a)) - (x1 * (4 * exp(-(v+65)/18))) ) *dt);
-        }
+        // Calculate d_dra
+        inf = powf(1 / (1 + exp((-5-v)/9) ), 0.5);
+        tau = 0.5 + 5.75 * exp(-powf(-25-v, 2) / pow(32,2));
+        DRA[nid] = dra + ((inf - dra) / tau) * dt;
 
-        x2 = x2 + (( ((1 - x2)* 0.07*exp(-(v+65)/20)) - (x2 / (exp(-(v+35)/10) + 1)) ) * dt);
+        // Calculate d_dri
+        inf = 1 / (1 + exp((-25 - v) / -10.5));
+        tau = 890;
+        DRI = dri + ((inf - dri) / tau) * dt;
 
-        V[nid] = v;
-        X0[nid] = x0;
-        X1[nid] = x1;
-        X2[nid] = x2;
+        V[nid] = v + (((i_ext - G_K*(v - E_K) - G_Cl*(v - E_Cl) - G_s*sa*si*(v - E_K) - G_dr*dra*dri*(v - E_K) - 0.093*(v - 10)) / C) * dt);
     }
     return;
 }
@@ -174,6 +176,7 @@ __global__ void signal_cascade(
     )
 {
 
+    int nid;
     for(int mid = 0; mid < 30000; ++mid){
         nid = (mid * neu_num) + mid;
 
@@ -279,32 +282,32 @@ __global__ void signal_cascade(
         }
 
         if(mu == 0) {
-            X_1[nid] += -hc[mu];
+            X_1[nid] += -1;
         } else if (mu == 1){
-            X_2[nid] += -hc[mu];
-            X_3[nid] += hc[mu];
+            X_2[nid] += -1;
+            X_3[nid] += 1;
         } else if (mu == 2){
-            X_3[nid] += -hc[mu];
-            X_4[nid] += hc[mu];
+            X_3[nid] += -1;
+            X_4[nid] += 1;
         } else if (mu == 3){
-            X_3[nid] += -hc[mu];
+            X_3[nid] += -1;
         } else if (mu == 4){
-            X_2[nid] += hc[mu];
+            X_2[nid] += 1;
         } else if (mu == 5){
-            X_5[nid] += hc[mu];
+            X_5[nid] += 1;
         } else if (mu == 6){
-            X_4[nid] += -hc[mu];
+            X_4[nid] += -1;
         } else if (mu == 7){
-            X_5[nid] += -hc[mu];
+            X_5[nid] += -1;
         } else if (mu == 8){
-            X_5[nid] += -2 * hc[mu];
-            X_7[nid] += hc[mu];
+            X_5[nid] += -2;
+            X_7[nid] += 1;
         } else if (mu == 9){
-            X_7[nid] += -hc[mu];
+            X_7[nid] += -1;
         } else if (mu == 10){
-            X_6[nid] += hc[mu];
+            X_6[nid] += 1;
         } else {
-            X_6[nid] += -hc[mu];
+            X_6[nid] += -1;
         }
 
         I_in[nid] = Tcurrent*X_7[nid];
@@ -340,6 +343,7 @@ __global__ void calcium_dynamics(
 	%(type)s *I,
 	%(type)s *C_star)
 {
+    int nid;
     for(int mid = 0; mid < 30000; ++mid){
 
         nid = mid*neu_num + mid;
@@ -434,7 +438,7 @@ class Photoreceptor(BaseNeuron):
                 self.n_photons.gpudata,\
                 self.Np.gpudata,\
                 self.rand_index.gpudata)
-
+'''
         self.sig_cas.prepared_async_call(\
                 self.gpu_grid,\
                 self.gpu_block,\
@@ -479,8 +483,10 @@ class Photoreceptor(BaseNeuron):
             self.I_file.root.array.append(self.I.get().reshape((1,-1)))
             self.V_file.root.array.append(self.V.get().reshape((1,-1)))
             
-
+'''
     def get_rpam_kernel(self):
+        self.gpu_block = (128,1,1)
+        self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
         #cuda_src = open('./rpam.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         mod = SourceModule( \
@@ -496,6 +502,8 @@ class Photoreceptor(BaseNeuron):
         return func
 
     def get_sig_cas_kernel(self):
+        self.gpu_block = (128,1,1)
+        self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
         #cuda_src = open('./sig_cas.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         mod = SourceModule( \
@@ -522,6 +530,8 @@ class Photoreceptor(BaseNeuron):
         return func
 
     def get_ca_dyn_kernel(self):
+        self.gpu_block = (128,1,1)
+        self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
         #cuda_src = open('./ca_dyn.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         mod = SourceModule( \
