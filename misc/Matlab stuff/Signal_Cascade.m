@@ -1,4 +1,4 @@
-function [X, t, av] = Signal_Cascade(X_old, t, h, c)
+function [X, t, mu] = Signal_Cascade(X_old, t, h, c)
 
 mu = 1;                     % Reaction to perform each dt
 av = zeros(1,12);            % For determining mu
@@ -80,12 +80,12 @@ elseif (mu == 11)
 else
     X(6) = X(6) - 1;
 end
-
+%{
 for m = 1:7
     if X(m) < 0
         X(m) = 0;
     end
 end
-
+%}
 
 end
