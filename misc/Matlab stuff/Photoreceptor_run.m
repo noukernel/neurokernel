@@ -1,20 +1,18 @@
 close all;
 
 %% Random Photon Absorption Model
-%{
-dt = 1;
-t = 0:dt:1; % Only doing 1 'time step'
-tend = max(t);
 
-NT = zeros(30000,length(t));
-Nphoton = 1000;
+%dt = 1;
+%t = 0:dt:1; % Only doing 1 'time step'
 
+%NT = zeros(30000,length(t));
+%Nphoton = 1000;
 
-NT(:,1) = RPAM(Nphoton);
+%RPAM;
 
 % Should we store separate I_in per microvillus? No idea...
-I_in = zeros(30000,1);
-
+%I_in = zeros(30000,1);
+%{
 T_ph = cell(30000,1);
 for i = 1:30000
     T_ph{i} = cell(2,1);
@@ -85,12 +83,17 @@ V_m = -70e-3;
 f1 = K_NaCa*((Na_i)^3)*((Ca_o)^2)/v/F;
 f2 = K_NaCa*(exp(-V_m*F/R/T))*((Na_o)^3)/v/F;
 NA = 6.02e23;
+sa = 0.6982;
+si = 6.6517e-5;
+dra = 0.2285;
+dri = 1.2048e-4;
 
 %% Initialization of Matrices
 
 X = cell(7,1);
 Ca2 = zeros(1,1);
 mu = zeros(1,1);
+I_in = zeros(1,1);
 
 %for ii = 1:30000
 
@@ -98,9 +101,9 @@ for m = 1:7
     X{m} = zeros(1,1);
 end
 
-%X{1}(1) = 1; %NT(ii,1);
-X{1} = zeros(1,1001);
-X{1}(1:100) = 1;
+X{1}(1) = Np(1);
+%X{1} = zeros(1,1001);
+%X{1}(1:100) = 1;
 X{2}(1) = 50;
 X{3}(1) = 0;
 X{4}(1) = 0;
@@ -109,14 +112,15 @@ X{6}(1) = 0;
 X{7}(1) = 0;
 
 Ca2(1) = Ca_dark; 
+C_star_conc = X{6}(1)/v/NA*10^12;
 
 % Hill functions for positive and negative calcium feedback
 fp = ((Ca2(1)/K_p)^m_p)/(1+(Ca2(1)/K_p)^m_p);
-fn = n_s*((X{6}(1)/v/NA/1000/K_n)^m_n)/(1+(X{6}(1)/v/NA/1000/K_n)^m_n);
+fn = n_s*((C_star_conc/K_n)^m_n)/(1+(C_star_conc/K_n)^m_n);
 
 h = [X{1}(1); X{1}(1)*X{2}(1); X{3}(1)*(PLC_T - X{4}(1)); X{3}(1)*X{4}(1); 
     (G_T - X{3}(1) - X{2}(1) - X{4}(1)); X{4}(1); X{4}(1); X{5}(1); 
-    .5*(X{5}(1)*(X{5}(1)-1)*(T_T-X{7}(1))); X{7}(1); Ca2(1)*(903.3 - X{6}(1)); X{6}(1)];
+    .5*(X{5}(1)*(X{5}(1)-1)*(T_T-X{7}(1))); X{7}(1); Ca2(1)*(903 - X{6}(1)); X{6}(1)];
 
 c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP; 
     Gamma_G; Kappa_Dstar; Gamma_PLCstar*(1+h_PLCstar*fn); 
@@ -124,21 +128,25 @@ c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP;
     Gamma_Tstar*(1+h_TstarN*fn); K_u; K_r];
 
 
-I_in = I_Tstar * X{7}(1);      % Initialize input current (X(7,1) is Tstar)
-I_Ca = P_Ca * I_in;         % Calcium Current ~40%
+I_in(1) = I_Tstar * X{7}(1);      % Initialize input current (X(7,1) is Tstar)
+I_Ca = P_Ca * I_in(1);         % Calcium Current ~40%
 I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2(1)*exp(-V_m*F/R/T)));
-I_Canet = I_Ca - 2*I_NaCa;
+I_Canet = I_Ca + 2*I_NaCa;
 
 i = 1;          % X iterator (how many times Signal_Cascade was called)
 %ii = 1;         % T_ph iterator (next photon absorption)
 %tt = 0;         % Timekeeper
 
 %For one microvillus
-while (t < 1)
+while (t < tend)
+    
+    RPAM;
+    X{1}(i) = Np(1);
     
     X_old = [X{1}(i), X{2}(i), X{3}(i), X{4}(i), X{5}(i), X{6}(i), X{7}(i)];
     
-    [Z, t, nu] = Signal_Cascade(X_old, t, h, c);
+    [Z, dt] = Signal_Cascade(X_old, h, c);
+    t = t + dt;
     
     %tt = tt + 1;%t_new;
     
@@ -149,14 +157,16 @@ while (t < 1)
     end
     %}
     
-    mu = [mu nu];
+    %mu = [mu nu];
     
     i = i + 1;
     
-    %for m = 1:7
-    for m = 2:7
+    for m = 1:7
+    %for m = 2:7
         X{m} = [X{m} Z(m)];%#ok<*AGROW>
     end
+    
+    C_star_conc = X{6}(i)/v/NA*10^12;
         
     % Update h
     h = [X{1}(i); X{1}(i)*X{2}(i); X{3}(i)*(PLC_T - X{4}(i)); X{3}(i)*X{4}(i); 
@@ -165,7 +175,7 @@ while (t < 1)
     
     % Update fp, fn
     fp = ((Ca2(i-1)/K_p)^m_p)/(1+(Ca2(i-1)/K_p)^m_p);
-    fn = n_s*((X{6}(1)/v/NA/1000/K_n)^m_n)/(1+(X{6}(1)/v/NA/1000/K_n)^m_n);
+    fn = n_s*((C_star_conc/K_n)^m_n)/(1+(C_star_conc/K_n)^m_n);
     
     % Update c
     c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP; 
@@ -174,46 +184,40 @@ while (t < 1)
     Gamma_Tstar*(1+h_TstarN*fn); K_u; K_r];
         
     % Update Current for Calcium
-    I_in = I_Tstar * X{7}(i);      
-    I_Ca = P_Ca * I_in;         
+    I_in = [I_in I_Tstar*X{7}(i)];      
+    I_Ca = P_Ca * I_in(i);         
     I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2(i-1)*exp(-V_m*F/R/T)));
-    I_Canet = I_Ca - 2*I_NaCa;
+    I_Canet = I_Ca + 2*I_NaCa;
     
     % Update Calcium
-    Ca2 = [Ca2 ((I_Canet/2/v/F) + n*K_r*X{6}(i)/v/NA/1000 + f1)/(n*K_u*(C_T - X{6}(i))/v/NA/1000 + K_Ca + f2)];%#ok<*AGROW>
+    Ca2 = [Ca2 ((I_Canet/2/v/F) + n*K_r*C_star_conc + f1)/(n*K_u*(C_T - C_star_conc) + K_Ca + f2)];%#ok<*AGROW>
         
     if Ca2(i) < 0
         Ca2(i) = 0;
     end
     
+    LIC = I_in(i)*30000/(10^6)/(1.57e-5);
+    
+    z = F_HHN([V_m sa si dra dri],LIC);
+    
+    V_m = V_m + z(1)*dt;
+    sa = sa + z(2)*dt;
+    si = si + z(3)*dt;
+    dra = dra + z(4)*dt;
+    dri = dri + z(5)*dt;
+    
+    f2 = K_NaCa*(exp(-V_m*F/R/T))*((Na_o)^3)/v/F;  % Update f2 (based on membrane voltage)
+
+    
+    
+    
+    
 end
 %end
     
-%{ 
-Working on this part now    
-for mv = 1:30000
-    
-    while tt <= tend
-        
-        Xn = Signal_Cascade(X, NT(mv,tt), tt, h, c, as, dt);
-    
-        for m = 1:7
-            X{m} = [X{m} Xn(m)];
-        end
-        
-        tt = tt + 1;
-    
-    
-    
-    
-    
-    end 
-    
-end
 
-%}
 
-figure;
+figure('Position',[10 30 600 400]);
 subplot(421);
 plot(X{1});
 xlim([0 1000]);
