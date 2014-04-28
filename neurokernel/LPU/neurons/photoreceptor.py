@@ -368,9 +368,10 @@ class Photoreceptor(BaseNeuron):
 
         # Gpot neuron Inputs/Outputs
         self.V = V
-        self.X0 = garray.to_gpu( np.asarray( n_dict['X0'], dtype=np.float64 ))
-        self.X1 = garray.to_gpu( np.asarray( n_dict['X1'], dtype=np.float64 ))
-        self.X2 = garray.to_gpu( np.asarray( n_dict['X2'], dtype=np.float64 ))
+        self.SA = garray.to_gpu( np.asarray( n_dict['SA'], dtype=np.float64 ))
+        self.SI = garray.to_gpu( np.asarray( n_dict['SI'], dtype=np.float64 ))
+        self.DRA = garray.to_gpu( np.asarray( n_dict['DRA'], dtype=np.float64 ))
+        self.DRI = garray.to_gpu( np.asarray( n_dict['DRI'], dtype=np.float64 ))
 
         # FIXME: Make clean, actually use input file or something.
         # RPAM Inputs/Outputs
@@ -502,6 +503,7 @@ class Photoreceptor(BaseNeuron):
                         np.intp,   # I_in
                         np.intp,   # I
                         np.intp,   # V_m
+                        np.float64, # dt
                         np.intp,   # Np
                         np.intp,   # rand1
                         np.intp,   # rand2
@@ -550,9 +552,10 @@ class Photoreceptor(BaseNeuron):
                         np.float64, # dt
                         np.intp, # V array
                         np.intp, # I array
-                        np.intp, # X0 array
-                        np.intp, # X1 array
-                        np.intp ]) # X2 array
+                        np.intp, # SA array
+                        np.intp, # SI array
+                        np.intp, # DRA array
+                        np.intp ]) # DRI array
 
         return func
         
