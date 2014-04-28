@@ -62,7 +62,7 @@ __global__ void hodgkin_huxley(
         // Calculate d_dri
         inf = 1 / (1 + exp((-25 - v) / -10.5));
         tau = 890;
-        DRI = dri + ((inf - dri) / tau) * dt;
+        DRI[nid] = dri + ((inf - dri) / tau) * dt;
 
         V[nid] = v + (((i_ext - G_K*(v - E_K) - G_Cl*(v - E_Cl) - G_s*sa*si*(v - E_K) - G_dr*dra*dri*(v - E_K) - 0.093*(v - 10)) / C) * dt);
     }
@@ -464,9 +464,10 @@ class Photoreceptor(BaseNeuron):
             self.ddt * 1000,\
             self.V,\
             self.I.gpudata,\
-            self.X0.gpudata,\
-            self.X1.gpudata,\
-            self.X2.gpudata)
+            self.SA.gpudata,\
+            self.SI.gpudata,\
+            self.DRA.gpudata,\
+            self.DRI.gpudata)
         if self.debug:
             self.I_file.root.array.append(self.I.get().reshape((1,-1)))
             self.V_file.root.array.append(self.V.get().reshape((1,-1)))
@@ -501,7 +502,6 @@ class Photoreceptor(BaseNeuron):
         func = mod.get_function("signal_cascade")
         func.prepare( [ np.int32, # neu_num
                         np.intp,   # I_in
-                        np.intp,   # I
                         np.intp,   # V_m
                         np.float64, # dt
                         np.intp,   # Np
