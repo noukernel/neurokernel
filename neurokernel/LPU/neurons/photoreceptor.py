@@ -114,6 +114,9 @@ __global__ void rpam(
 
 }
 
+#define NA 6.02*powf(10.0,23.0)
+#define uVillusVolume 3.0*powf(10.0, -9.0)
+
 #define Kp 0.3
 #define Kn 0.18
 #define mp 2
@@ -149,14 +152,14 @@ __global__ void rpam(
 #define CaUptakeRate 30
 #define CaReleaseRate 5.5
 #define CaDiffusionRate 1000
-#define uVillusVolume 3.0*powf(10.0, -12.0)
 #define NaCaConst 3.0*powf(10.0, -8.0)
 #define membrCap 62.8
 #define ns 1 //assuming a dim background (would be 2 for bright)
 #define PLCT 100
 #define GT 50
 #define TT 25
-#define CT 0.5
+#define CTconc 0.5
+#define CTnum 903
 
 __global__ void signal_cascade(
     int neu_num,
@@ -203,14 +206,16 @@ __global__ void signal_cascade(
         h[7] = X5;
         h[8] = (X5*(X5-1)*(TT-X7))/2;
         h[9] = X7;
-        h[10] = (CT - X6)*Ca2[nid];
+        h[10] = (CTnum - X6)*Ca2[nid];
         h[11] = X6;
 
         //31
         double fp = (powf((Ca2[nid]/Kp), mp)) / (1+powf((Ca2[nid]/Kp), mp));
 
+	double C_star_conc = X6/uVillusVolume/NA*powf(10.0,12.0);
+
         //32
-        double fn = ns * powf((X6/Kn), mn)/(1+(powf((X6/Kn), mn)));
+        double fn = ns * powf((C_star_conc/Kn), mn)/(1+(powf((C_star_conc/Kn), mn)));
 
         double c[12];
 
@@ -224,7 +229,7 @@ __global__ void signal_cascade(
         c[7] = DrateD*(1+hD*fn);
         c[8] = (ArateT*(1+hTpos*fp))/(ArateK*ArateK);
         c[9] = DrateT*(1+hTneg*fn);
-        c[10] = CaUptakeRate/(uVillusVolume*uVillusVolume);
+        c[10] = CaUptakeRate;
         c[11] = CaReleaseRate;
 
         //need an a vector:
@@ -291,6 +296,7 @@ __global__ void signal_cascade(
     I_in[nid] = Tcurrent*X_7[nid];
 }
 
+#define NA 6.02*powf(10.0,23.0)
 #define Kp 0.3
 #define Kn 0.18
 #define mp 2
@@ -304,11 +310,11 @@ __global__ void signal_cascade(
 #define F 96485
 #define R 8.314
 #define T 293
-#define v 3.0*powf(10.0, -12.0)
+#define v 3.0*powf(10.0, -9.0)
 #define n 4
 #define K_r 5.5
 #define K_u 30
-#define C_T 0.5
+#define C_T 903
 #define K_Ca 100
 
 __global__ void calcium_dynamics(
@@ -332,8 +338,10 @@ __global__ void calcium_dynamics(
     //42
     double f2 = (K_NaCa * exp((-V_m[neu_num]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
 
+    double CaM_conc = (C_T - C_star)/v/NA*powf(10.0,12.0);
+
     //40 (composed of 37,38,39)
-    Ca2[nid] = v*(I_CaNet/(2*v*F) + n*K_r*C_star[nid] - f1)/(n*K_u*(C_T - C_star[nid]) + K_Ca - f2);
+    Ca2[nid] = (I_CaNet/(2*v*F) + n*K_r*C_star[nid]/v/NA*powf(10.0,12.0) + f1)/(n*K_u*CaM_conc + K_Ca + f2);
 
     //I[nid] += I_in[nid];
     
