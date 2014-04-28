@@ -39,6 +39,9 @@ tend = 1;
 la = 0.5;
 n_s = 2;
 
+NA = 6.02e23;
+v = 3e-9;
+
 K_p = 0.3;
 K_n = 0.18;
 m_p = 2;
@@ -63,7 +66,8 @@ Gamma_GAP = 3;
 T_T = 25;
 G_T = 50;
 PLC_T = 100;
-C_T = 0.5;
+C_T_conc = 0.5;
+C_T_num = C_T_conc*NA*v*10^(-12); %903
 P_Ca = .4;
 I_Tstar = .68;
 Na_o = 120;
@@ -78,13 +82,11 @@ R = 8.314;
 K_u = 30;
 K_r = 5.5;
 K_Ca = 1000;
-v = 3e-9;
 K_NaCa = 3e-8;
 C_m = 62.8;
 V_m = -70e-3;
 f1 = K_NaCa*((Na_i)^3)*((Ca_o)^2)/v/F;
 f2 = K_NaCa*(exp(-V_m*F/R/T))*((Na_o)^3)/v/F;
-NA = 6.02e23;
 sa = 0.6982;
 si = 6.6517e-5;
 dra = 0.2285;
@@ -124,7 +126,10 @@ for ii = 1:n_m
         X{7,ii} = 0;
 
         Ca2(1,ii) = Ca_dark; 
-        C_star_conc = X{6,ii}(1)/v/NA*10^12;
+        C_star_conc = X{6,ii}/v/NA*10^12;
+        C_star_num = X{6,ii};
+        CaM_num = C_T_num;
+        CaM_conc = C_T_conc;
     
 
         % Hill functions for positive and negative calcium feedback
@@ -133,7 +138,7 @@ for ii = 1:n_m
 
         h = [X{1,ii}; X{1,ii}*X{2,ii}; X{3,ii}*(PLC_T - X{4,ii}); X{3,ii}*X{4,ii}; 
         (G_T - X{3,ii} - X{2,ii} - X{4,ii}); X{4,ii}; X{4,ii}; X{5,ii}; 
-        .5*(X{5,ii}*(X{5,ii}-1)*(T_T-X{7,ii})); X{7,ii}; Ca2(1,ii)*(903 - X{6,ii}); X{6,ii}];
+        .5*(X{5,ii}*(X{5,ii}-1)*(T_T-X{7,ii})); X{7,ii}; Ca2(1,ii)*CaM_num; X{6,ii}];
 
         c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP; 
         Gamma_G; Kappa_Dstar; Gamma_PLCstar*(1+h_PLCstar*fn); 
@@ -143,7 +148,7 @@ for ii = 1:n_m
 
         I_in(1,ii) = I_Tstar * X{7,ii};      % Initialize input current (X(7,1) is Tstar)
         I_Ca = P_Ca * I_in(1,ii);         % Calcium Current ~40%
-        I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2(1)*exp(-V_m*F/R/T)));
+        I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2(1,ii)*exp(-V_m*F/R/T)));
         I_Canet = I_Ca + 2*I_NaCa;
     end
 
@@ -154,8 +159,16 @@ for ii = 1:n_m
     %For one microvillus
     % when this is a script, it resets X for some reason.
     % Memory allocation problem? Very strange.
+    
     Np = RPAM(100 + round(rand(1)*900)); % random num between 100 and 1000
     X{1,ii} = Np(ii);
+    %{
+    if (runtime < 20)
+        X{1,ii} = 1;
+    else
+        X{1,ii} = 0;
+    end
+    %}
     while (t < ddt)
     
 
@@ -184,11 +197,14 @@ for ii = 1:n_m
         end
     
         C_star_conc = X{6,ii}/v/NA*10^12;
+        C_star_num = X{6,ii};
+        CaM_num = C_T_num - C_star_num;
+        CaM_conc = CaM_num/v/NA*10^12;
         
         % Update h
         h = [X{1,ii}; X{1,ii}*X{2,ii}; X{3,ii}*(PLC_T - X{4,ii}); X{3,ii}*X{4,ii}; 
         (G_T - X{3,ii} - X{2,ii} - X{4,ii}); X{4,ii}; X{4,ii}; X{5,ii}; 
-        .5*(X{5,ii}*(X{5,ii}-1)*(T_T-X{7,ii})); X{7,ii}; Ca2(1,ii)*(903 - X{6,ii}); X{6,ii}];
+        .5*(X{5,ii}*(X{5,ii}-1)*(T_T-X{7,ii})); X{7,ii}; Ca2(1,ii)*CaM_num; X{6,ii}];
     
         % Update fp, fn
         fp = ((Ca2(1,ii)/K_p)^m_p)/(1+(Ca2(1,ii)/K_p)^m_p);
@@ -207,7 +223,8 @@ for ii = 1:n_m
         I_Canet = I_Ca + 2*I_NaCa;
     
         % Update Calcium
-        Ca2(1,ii) = ((I_Canet/2/v/F) + n*K_r*C_star_conc + f1)/(n*K_u*(C_T - C_star_conc) + K_Ca + f2);%#ok<*AGROW>
+        %Ca2(1,ii) = ((I_Canet/2/v/F) + n*K_r*C_star_conc + f1)/(n*K_u*(C_T - C_star_conc) + K_Ca + f2);%#ok<*AGROW>
+        Ca2(1,ii) = ((I_Canet/2/v/F) + n*K_r*C_star_conc + f1)/(n*K_u*CaM_conc + K_Ca + f2);%#ok<*AGROW>
         
         if Ca2(1,ii) < 0
             Ca2(1,ii) = 0;
@@ -244,50 +261,55 @@ end
 figure('Position',[10 30 600 400]);
 subplot(421);
 plot(print_X(1,:));
-xlim([0 1000]);
-ylim([0 1]);
+xlim([0 runtime]);
+%ylim([0 1]);
 title('M*');
 
 subplot(423);
 plot(print_X(2,:));
 title('G');
-%ylim([0 50]);
-xlim([0 1000]);
+ylim([0 50]);
+xlim([0 runtime]);
 
 subplot(425);
 plot(print_X(3,:));
 title('G*');
 %ylim([0 1]);
-xlim([0 1000]);
+xlim([0 runtime]);
 
 subplot(427);
 plot(print_X(4,:));
 title('PLC*');
 %ylim([0 2]);
-xlim([0 1000]);
+xlim([0 runtime]);
 
 subplot(422);
 plot(print_X(5,:));
 title('D*');
 %ylim([0 30]);
-xlim([0 1000]);
+xlim([0 runtime]);
 
 subplot(424);
 plot(print_X(6,:));
 title('C*');
-%ylim([0 60]);
-xlim([0 1000]);
+ylim([0 60]);
+xlim([0 runtime]);
 
 subplot(426);
 plot(print_X(7,:));
 title('T*');
 %ylim([0 25]);
-xlim([0 1000]);
+xlim([0 runtime]);
 
 subplot(428);
 plot(print_Ca);
 title('Ca(2+)');
-%ylim([0 0.8]);
-xlim([0 1000]);
+ylim([0 0.8]);
+xlim([0 runtime]);
 
+figure;
+subplot(211);
+plot(print_V);
 
+subplot(212);
+plot(print_I);
