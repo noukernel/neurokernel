@@ -1,5 +1,7 @@
+function Np = RPAM(num_photons)
+
 Nmicro = 30000;
-Nph = 1000;
+Nph = num_photons;
 LambdaM = Nph/Nmicro;
 k = -1;
 flag = true;
