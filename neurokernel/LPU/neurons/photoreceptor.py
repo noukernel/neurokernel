@@ -41,7 +41,7 @@ __global__ void hodgkin_huxley(
         sa = SA[nid];
         si = SI[nid];
         dra = DRA[nid];
-        dri = DRI[nid]
+        dri = DRI[nid];
 
         %(type)s inf, tau;
         // Calculate d_sa
@@ -165,6 +165,7 @@ __global__ void signal_cascade(
     int neu_num,
     %(type)s *I_in,
     %(type)s *V_m,
+    %(type)s dt,
     %(type)s *Np,
     %(type)s *rand1,
     %(type)s *rand2,
@@ -180,6 +181,7 @@ __global__ void signal_cascade(
 {
 
     int nid = threadIdx.x;
+    %(type)s t_run = 0;
 
     //16: state vector:
     double X1 = X_1[nid];
@@ -192,7 +194,7 @@ __global__ void signal_cascade(
 
     while (t_run < dt) {
 
-        double Iin = Tcurrent*X7;
+        double I_in = Tcurrent*X7;
 
         double h[12];
         //18: reactant pairs - not concentrations??
@@ -212,7 +214,7 @@ __global__ void signal_cascade(
         //31
         double fp = (powf((Ca2[nid]/Kp), mp)) / (1+powf((Ca2[nid]/Kp), mp));
 
-	double C_star_conc = X6/uVillusVolume/NA*powf(10.0,12.0);
+	    double C_star_conc = X6/uVillusVolume/NA*powf(10.0,12.0);
 
         //32
         double fn = ns * powf((C_star_conc/Kn), mn)/(1+(powf((C_star_conc/Kn), mn)));
@@ -248,7 +250,8 @@ __global__ void signal_cascade(
         double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
     
         // Calculate next dt step
-        t_run += (1 / (la + sa)) * logf(1/rand1[nid])
+        %(type)s la = 0.5;
+        t_run += (1 / (la + as)) * logf(1/rand1[nid]);
 
         double av[12];
         av[0] = h[0]*c[0];
@@ -379,7 +382,7 @@ class Photoreceptor(BaseNeuron):
 
         # Signal Cascade Inputs/Outputs
         # FIXME: Should I_in be the same as I?
-        self.I_in = garray,to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
+        self.I_in = garray.to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
         self.rand1 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = self.num_m ))
         self.rand2 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = self.num_m ))
         self.Ca2 = garray.to_gpu( np.asarray( 0.00016, dtype=np.float64 ))
@@ -429,6 +432,7 @@ class Photoreceptor(BaseNeuron):
                 self.I_in.gpudata,\
                 self.I.gpudata,\
                 self.V,\
+                self.ddt * 1000,\
                 self.Np.gpudata,\
                 self.rand1.gpudata,\
                 self.rand2.gpudata,\
