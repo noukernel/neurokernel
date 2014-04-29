@@ -176,8 +176,7 @@ __global__ void signal_cascade(
     %(type)s *X_4,
     %(type)s *X_5,
     %(type)s *X_6,
-    %(type)s *X_7,
-    )
+    %(type)s *X_7)
 {
 
     int nid = threadIdx.x;
@@ -322,7 +321,7 @@ __global__ void signal_cascade(
 
 __global__ void calcium_dynamics(
     int neu_num,
-    %(type)s *I_in
+    %(type)s *I_in,
 	%(type)s *Ca2,
 	%(type)s *V_m,
 	%(type)s *I,
@@ -341,7 +340,7 @@ __global__ void calcium_dynamics(
     //42
     double f2 = (K_NaCa * exp((-V_m[neu_num]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
 
-    double CaM_conc = (C_T - C_star)/v/NA*powf(10.0,12.0);
+    double CaM_conc = (C_T - C_star[nid])/v/NA*powf(10.0,12.0);
 
     //40 (composed of 37,38,39)
     Ca2[nid] = (I_CaNet/(2*v*F) + n*K_r*C_star[nid]/v/NA*powf(10.0,12.0) + f1)/(n*K_u*CaM_conc + K_Ca + f2);
