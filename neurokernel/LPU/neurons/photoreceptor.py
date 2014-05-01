@@ -46,17 +46,17 @@ __global__ void hodgkin_huxley(
         %(type)s inf, tau;
         // Calculate d_sa
         inf = powf(1 / (1 + exp( (-30-v) / 13.5)) , 1/3);
-        tau = 0.13 + 3.39 * exp( -powf((-73-v),2) / pow(20,2) );
+        tau = 0.13 + 3.39 * exp( -powf((-73-v),2) / powf(20,2) );
         SA[nid] = sa + ((inf - sa) / tau) * dt;
 
         // Calculate d_si
         inf = 1 / (1 + exp((-55 - v) / -5.5) );
-        tau = 113 * exp( - powf((-71-v) , 2) / pow(29,2));
+        tau = 113 * exp( - powf((-71-v) , 2) / powf(29,2));
         SI[nid] = si + ((inf - si) / tau) * dt;
 
         // Calculate d_dra
         inf = powf(1 / (1 + exp((-5-v)/9) ), 0.5);
-        tau = 0.5 + 5.75 * exp(-powf(-25-v, 2) / pow(32,2));
+        tau = 0.5 + 5.75 * exp(-powf(-25-v, 2) / powf(32,2));
         DRA[nid] = dra + ((inf - dra) / tau) * dt;
 
         // Calculate d_dri
@@ -400,6 +400,9 @@ class Photoreceptor(BaseNeuron):
 
         # Copies an initial V into V
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
+        self.gpu_block = (self.num_m,1,1)
+        self.gpu_grid = (1, 1)
+
         self.rpam = self.get_rpam_kernel()
         self.sig_cas = self.get_sig_cas_kernel()
         self.ca_dyn = self.get_ca_dyn_kernel()
@@ -473,8 +476,6 @@ class Photoreceptor(BaseNeuron):
             
 
     def get_rpam_kernel(self):
-        self.gpu_block = (1,1,1)
-        self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
         #cuda_src = open('./rpam.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         mod = SourceModule( \
@@ -490,8 +491,6 @@ class Photoreceptor(BaseNeuron):
         return func
 
     def get_sig_cas_kernel(self):
-        self.gpu_block = (self.num_m,1,1)
-        self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
         #cuda_src = open('./sig_cas.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         mod = SourceModule( \
@@ -518,8 +517,6 @@ class Photoreceptor(BaseNeuron):
         return func
 
     def get_ca_dyn_kernel(self):
-        self.gpu_block = (self.num_m,1,1)
-        self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
         #cuda_src = open('./ca_dyn.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         mod = SourceModule( \
@@ -537,8 +534,6 @@ class Photoreceptor(BaseNeuron):
         return func
 
     def get_gpu_kernel(self):
-        self.gpu_block = (1,1,1)
-        self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
         #cuda_src = open( './photoreceptor.cu','r')
         mod = SourceModule( \
                 cuda_src % {"type": dtype_to_ctype(np.float64),\
