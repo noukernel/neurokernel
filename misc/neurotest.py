@@ -1,4 +1,4 @@
-mport numpy as np
+import numpy as np
 import networkx as nx
 import h5py
 from neurokernel.core import Manager

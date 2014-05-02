@@ -161,6 +161,8 @@ __global__ void rpam(
 #define CTconc 0.5
 #define CTnum 903
 
+#define MAX_RUN 20
+
 __global__ void signal_cascade(
     int neu_num,
     %(type)s dt,
@@ -193,8 +195,9 @@ __global__ void signal_cascade(
     double X6 = X_6[nid];
     double X7 = X_7[nid];
 
-    while (t_run < dt) {
-
+    int max_run = 0;
+    while ((t_run < dt) || (max_run > MAX_RUN)) {
+        max_run += 1;
         double I_in = Tcurrent*X7;
 
         double h[12];
@@ -296,7 +299,7 @@ __global__ void signal_cascade(
             X_6[nid] += -1;
         }
     }
-    // Shouldn't need this...but do.
+
     if(X_1[nid] < 0){
         X_1[nid] = 0;
     }
@@ -479,6 +482,15 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata,\
                 self.X_7.gpudata)
 
+        # Dirty way of debugging
+        print 'X_1: ', self.X_1
+        print 'X_2: ', self.X_2
+        print 'X_3: ', self.X_3
+        print 'X_4: ', self.X_4
+        print 'X_5: ', self.X_5
+        print 'X_6: ', self.X_6
+        print 'X_7: ', self.X_7
+
         self.ca_dyn.prepared_async_call(\
                 self.gpu_grid,\
                 self.gpu_block,\
@@ -544,8 +556,7 @@ class Photoreceptor(BaseNeuron):
                         np.intp,   # X[4]
                         np.intp,   # X[5]
                         np.intp,   # X[6]
-                        np.intp   # X[7]
-                        ])
+                        np.intp])   # X[7]
         return func
 
     def get_ca_dyn_kernel(self):
@@ -561,8 +572,7 @@ class Photoreceptor(BaseNeuron):
                         np.intp, # Ca2
                         np.intp, # V_m
                         np.intp, # I
-                        np.intp  # C_star/X[6]
-                        ])
+                        np.intp])  # C_star/X[6]
         return func
 
     def get_gpu_kernel(self):
