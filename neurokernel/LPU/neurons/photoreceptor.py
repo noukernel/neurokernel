@@ -415,8 +415,6 @@ class Photoreceptor(BaseNeuron):
         # Signal Cascade Inputs/Outputs
         # FIXME: Should I_in be the same as I?
         self.I_in = garray.to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
-        self.rand1 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = self.num_m ))
-        self.rand2 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = self.num_m ))
         self.Ca2 = garray.to_gpu( np.asarray( 0.00016, dtype=np.float64 ))
 
         # FIXME: Supposed to be Np[some id], but that doesn't exist yet...
@@ -460,6 +458,8 @@ class Photoreceptor(BaseNeuron):
         #        self.n_photons.gpudata,\
         #        self.Np.gpudata,\
         #        self.rand_index.gpudata)
+        self.rand1 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = self.num_m ))
+        self.rand2 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = self.num_m ))
 
         self.sig_cas.prepared_async_call(\
                 self.gpu_grid,\
