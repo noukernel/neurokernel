@@ -111,7 +111,7 @@ __global__ void rpam(
             //Np[rand[jj+num_abs[ii -1]]] = ii;
         }
     }
-
+    return;
 }
 
 #define NA 6.02*powf(10.0,23.0)
@@ -163,9 +163,10 @@ __global__ void rpam(
 
 __global__ void signal_cascade(
     int neu_num,
+    %(type)s dt,
+    %(type)s *I,
     %(type)s *I_in,
     %(type)s *V_m,
-    %(type)s dt,
     %(type)s *Np,
     %(type)s *rand1,
     %(type)s *rand2,
@@ -179,7 +180,8 @@ __global__ void signal_cascade(
     %(type)s *X_7)
 {
 
-    int nid = threadIdx.x;
+    int bid = blockIdx.x;
+    int nid = bid * NNEU + threadIdx.x;
     %(type)s t_run = 0;
 
     //16: state vector:
@@ -296,6 +298,7 @@ __global__ void signal_cascade(
     }
 
     I_in[nid] = Tcurrent*X_7[nid];
+    return;
 }
 
 #define NA 6.02*powf(10.0,23.0)
@@ -327,7 +330,8 @@ __global__ void calcium_dynamics(
 	%(type)s *I,
 	%(type)s *C_star)
 {
-    int nid = threadIdx.x;
+    int bid = blockIdx.x;
+    int nid = bid * NNEU + threadIdx.x;
 
     double I_Ca = I_in[nid] * P_Ca;
     double I_NaCa = K_NaCa * (powf(Na_i,3.0) * Ca_o - powf(Na_o,3.0) * Ca2[nid] * exp((-V_m[neu_num]*F) / (R*T)));
@@ -348,6 +352,7 @@ __global__ void calcium_dynamics(
     //I[nid] += I_in[nid];
     
     //I[nid] = I[neu_num] * pow(10, 5);
+    return;
 }
 
 """
@@ -363,7 +368,7 @@ class Photoreceptor(BaseNeuron):
         self.LPU_id = LPU_id
         self.ddt = dt / self.steps
 
-        self.num_m = 128
+        self.num_m = 2 # number microvilii
 
         # Gpot neuron Inputs/Outputs
         self.V = V
@@ -401,7 +406,7 @@ class Photoreceptor(BaseNeuron):
         # Copies an initial V into V
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
         self.gpu_block = (self.num_m,1,1)
-        self.gpu_grid = (1, 1)
+        self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
 
         self.rpam = self.get_rpam_kernel()
         self.sig_cas = self.get_sig_cas_kernel()
@@ -423,6 +428,7 @@ class Photoreceptor(BaseNeuron):
         self.rpam.prepared_async_call(\
                 self.gpu_grid,\
                 self.gpu_block,\
+                st,\
                 self.num_neurons,\
                 self.n_photons.gpudata,\
                 self.Np.gpudata,\
@@ -431,11 +437,12 @@ class Photoreceptor(BaseNeuron):
         self.sig_cas.prepared_async_call(\
                 self.gpu_grid,\
                 self.gpu_block,\
+                st,\
                 self.num_neurons,\
-                self.I_in.gpudata,\
-                self.I.gpudata,\
-                self.V,\
                 self.ddt * 1000,\
+                self.I.gpudata,\
+                self.I_in.gpudata,\
+                self.V,\
                 self.Np.gpudata,\
                 self.rand1.gpudata,\
                 self.rand2.gpudata,\
@@ -451,6 +458,7 @@ class Photoreceptor(BaseNeuron):
         self.ca_dyn.prepared_async_call(\
                 self.gpu_grid,\
                 self.gpu_block,\
+                st,\
                 self.num_neurons,\
                 self.I_in.gpudata,\
                 self.Ca2.gpudata,\
@@ -486,8 +494,7 @@ class Photoreceptor(BaseNeuron):
         func.prepare( [ np.int32, # neu_num
                         np.intp,   # n_photons
                         np.intp,   # Np
-                        np.intp   # rand_index
-                        ])
+                        np.intp])   # rand_index
         return func
 
     def get_sig_cas_kernel(self):
@@ -499,9 +506,10 @@ class Photoreceptor(BaseNeuron):
                 options=["--ptxas-options=-v"])
         func = mod.get_function("signal_cascade")
         func.prepare( [ np.int32, # neu_num
+                        np.float64, # dt
+                        np.intp,    # I
                         np.intp,   # I_in
                         np.intp,   # V_m
-                        np.float64, # dt
                         np.intp,   # Np
                         np.intp,   # rand1
                         np.intp,   # rand2
