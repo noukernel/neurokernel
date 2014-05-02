@@ -273,9 +273,12 @@ __global__ void signal_cascade(
         double a11 = c[11]*h[11];
         double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
     
-        // Calculate next dt step
+	double output[2];
+        gen_rand_num(state, output);
+
+	// Calculate next dt step
         %(type)s la = 0.5;
-        t_run += (1 / (la + as)) * logf(1/rand1[nid]);
+        t_run += (1 / (la + as)) * logf(1/output[0]);
 
         double av[12];
         av[0] = h[0]*c[0];
@@ -286,7 +289,7 @@ __global__ void signal_cascade(
         for(int ii = 1; ii < 12; ++ii){
             hc[ii] = c[ii]*h[ii];
             av[ii] = av[ii-1] + hc[ii];
-            if((rand2[nid]*as > av[ii - 1]) && (rand2[nid]*as <= av[ii])){
+            if((output[1]*as > av[ii - 1]) && (output[1]*as <= av[ii])){
                 mu = ii;
             }
         }
