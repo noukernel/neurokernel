@@ -69,6 +69,9 @@ __global__ void hodgkin_huxley(
     return;
 }
 
+"""
+
+rpam_src = """
 #define n_micro 30000.0
 
 __global__ void rpam( 
@@ -79,7 +82,7 @@ __global__ void rpam(
 { 
     bool not_converged = true; 
     %(type)s lambda_m, n_m, fe, fa, n_m_temp; 
-    n_m = n_micro; 
+/    n_m = n_micro; 
     lambda_m = 0; 
     float fx[6]; 
      
@@ -113,6 +116,22 @@ __global__ void rpam(
     }
     return;
 }
+
+"""
+
+sig_cas_src = """
+
+#define "curand_kernel.h"
+
+extern "C" {
+__device__ void gen_rand_num(curandStateXORWOW_t *state, int* output)
+{
+	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	
+	output[tid] = curand_uniform(&state[tid]); 
+}
+
+
 
 #define NA 6.02*powf(10.0,23.0)
 #define uVillusVolume 3.0*powf(10.0, -9.0)
@@ -166,6 +185,7 @@ __global__ void rpam(
 __global__ void signal_cascade(
     int neu_num,
     %(type)s dt,
+    %(type)s state,
     %(type)s *I,
     %(type)s *I_in,
     %(type)s *V_m,
@@ -325,6 +345,10 @@ __global__ void signal_cascade(
     I_in[nid] = Tcurrent*X_7[nid];
     return;
 }
+}
+"""
+
+ca_dyn_src = """
 
 #define NA 6.02*powf(10.0,23.0)
 #define Kp 0.3
@@ -432,6 +456,14 @@ class Photoreceptor(BaseNeuron):
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
         self.gpu_block = (self.num_m,1,1)
         self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
+	self.state = garray.empty(self.num_m, np.float64)
+
+	
+	self.rand = self.get_curand_int_func()
+	self.rand.prepare_async_call(
+		self.state,
+		2*self-num_m,
+		2)
 
         self.rpam = self.get_rpam_kernel()
         self.sig_cas = self.get_sig_cas_kernel()
@@ -467,6 +499,7 @@ class Photoreceptor(BaseNeuron):
                 st,\
                 self.num_neurons,\
                 self.ddt * 1000,\
+		self.state,\
                 self.I.gpudata,\
                 self.I_in.gpudata,\
                 self.V,\
@@ -523,7 +556,7 @@ class Photoreceptor(BaseNeuron):
         #cuda_src = open('./rpam.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         mod = SourceModule( \
-                cuda_src % {"type": dtype_to_ctype(np.float64),\
+                rpam_src % {"type": dtype_to_ctype(np.float64),\
                 "nneu": self.gpu_block[0] },\
                 options=["--ptxas-options=-v"])
         func = mod.get_function("rpam")
@@ -537,12 +570,13 @@ class Photoreceptor(BaseNeuron):
         #cuda_src = open('./sig_cas.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         mod = SourceModule( \
-                cuda_src % {"type": dtype_to_ctype(np.float64),\
+                sig_cas_src % {"type": dtype_to_ctype(np.float64),\
                 "nneu": self.gpu_block[0] },\
                 options=["--ptxas-options=-v"])
         func = mod.get_function("signal_cascade")
         func.prepare( [ np.int32, # neu_num
                         np.float64, # dt
+			np.float64, # rand state
                         np.intp,    # I
                         np.intp,   # I_in
                         np.intp,   # V_m
@@ -563,7 +597,7 @@ class Photoreceptor(BaseNeuron):
         #cuda_src = open('./ca_dyn.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
         mod = SourceModule( \
-                cuda_src % {"type": dtype_to_ctype(np.float64),\
+                ca_dyn_src % {"type": dtype_to_ctype(np.float64),\
                 "nneu": self.gpu_block[0] },\
                 options=["--ptxas-options=-v"])
         func = mod.get_function("calcium_dynamics")
@@ -594,6 +628,29 @@ class Photoreceptor(BaseNeuron):
                         np.intp ]) # DRI array
 
         return func
+    
+    def get_curand_int_func():
+   	 code = """
+	#include "curand_kernel.h"
+	extern "C" {
+	__global__ void 
+	rand_setup(curandStateXORWOW_t* state, int size, unsigned long long seed)
+	{
+	    int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	    int total_threads = blockDim.x * gridDim.x;
+
+	    for(int i = tid; i < size; i+=total_threads)
+	    {
+        	curand_init(seed, i, 0, &state[i]);
+    	    }
+	}
+	}
+    	"""
+    	mod = SourceModule(code, no_extern_c = True)
+    	func = mod.get_function("rand_setup")
+    	func.prepare([np.intp, np.int32, np.uint64])
+    	return func
+
         
     def post_run(self):
         if self.debug:
