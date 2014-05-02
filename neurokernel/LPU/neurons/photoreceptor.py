@@ -73,6 +73,7 @@ __global__ void hodgkin_huxley(
 
 rpam_src = """
 #define n_micro 30000.0
+#define NNEU %(nneu)d
 
 __global__ void rpam( 
     int neu_num,
@@ -122,14 +123,9 @@ __global__ void rpam(
 sig_cas_src = """
 
 #define "curand_kernel.h"
+#define NNEU %(nneu)d
 
 extern "C" {
-__device__ void gen_rand_num(curandStateXORWOW_t *state, int* output)
-{
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
-	
-	output[tid] = curand_uniform(&state[tid]); 
-}
 
 
 
@@ -182,10 +178,18 @@ __device__ void gen_rand_num(curandStateXORWOW_t *state, int* output)
 
 #define MAX_RUN 20
 
+__device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
+{
+	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+	
+	output[tid] = curand_uniform(&state[tid]); 
+}
+
+
 __global__ void signal_cascade(
     int neu_num,
     %(type)s dt,
-    %(type)s state,
+    curandStateXORWOR_t* state,
     %(type)s *I,
     %(type)s *I_in,
     %(type)s *V_m,
@@ -274,7 +278,7 @@ __global__ void signal_cascade(
         double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
     
 	double output[2];
-        gen_rand_num(state, output);
+        gen_rand_num(state, &output[0]);
 
 	// Calculate next dt step
         %(type)s la = 0.5;
@@ -352,6 +356,8 @@ __global__ void signal_cascade(
 """
 
 ca_dyn_src = """
+
+#define NNEU %(nneu)d
 
 #define NA 6.02*powf(10.0,23.0)
 #define Kp 0.3
@@ -463,10 +469,10 @@ class Photoreceptor(BaseNeuron):
 
 	
 	self.rand = self.get_curand_int_func()
-	self.rand.prepare_async_call(
-		self.state,
-		2*self-num_m,
-		2)
+	self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None,
+		self.state.gpudata,
+		2*self.num_m,
+		np.uint64(2))
 
         self.rpam = self.get_rpam_kernel()
         self.sig_cas = self.get_sig_cas_kernel()
@@ -475,12 +481,10 @@ class Photoreceptor(BaseNeuron):
         if self.debug:
             if self.LPU_id is None:
                 self.LPU_id = "anon"
-            self.I_file = tables.openFile(self.LPU_id + "_I.h5", mode="w")
+            self.I_file = tables.openFile(self.LPU_id + "_I_inside.h5", mode="w")
             self.I_file.createEArray("/","array", \
                                      tables.Float64Atom(), (0,self.num_neurons))
-            self.V_file = tables.openFile(self.LPU_id + "_V.h5", mode="w")
-            self.V_file.createEArray("/","array", \
-                                     tables.Float64Atom(), (0,self.num_neurons))
+
     @property
     def neuron_class(self): return True
 
@@ -502,7 +506,7 @@ class Photoreceptor(BaseNeuron):
                 st,\
                 self.num_neurons,\
                 self.ddt * 1000,\
-		self.state,\
+		self.state.gpudata,\
                 self.I.gpudata,\
                 self.I_in.gpudata,\
                 self.V,\
@@ -575,11 +579,11 @@ class Photoreceptor(BaseNeuron):
         mod = SourceModule( \
                 sig_cas_src % {"type": dtype_to_ctype(np.float64),\
                 "nneu": self.gpu_block[0] },\
-                options=["--ptxas-options=-v"])
+                options=["--ptxas-options=-v"],no_extern_c = True)
         func = mod.get_function("signal_cascade")
         func.prepare( [ np.int32, # neu_num
                         np.float64, # dt
-			np.float64, # rand state
+			np.intp, # rand state
                         np.intp,    # I
                         np.intp,   # I_in
                         np.intp,   # V_m
@@ -633,21 +637,21 @@ class Photoreceptor(BaseNeuron):
         return func
     
     def get_curand_int_func(self):
-   	    code = """
-	    #include "curand_kernel.h"
-	    extern "C" {
-	        __global__ void 
+	code = """
+	#include "curand_kernel.h"
+	extern "C" {
+		__global__ void 
 	        rand_setup(curandStateXORWOW_t* state, int size, unsigned long long seed)
 	        {
-	            int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	            int total_threads = blockDim.x * gridDim.x;
+	        	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	            	int total_threads = blockDim.x * gridDim.x;
 
-	            for(int i = tid; i < size; i+=total_threads)
-	            {
-        	        curand_init(seed, i, 0, &state[i]);
-    	        }
+	            	for(int i = tid; i < size; i+=total_threads)
+	            	{
+        	        	curand_init(seed, i, 0, &state[i]);
+    	            	}
 	        }
-	    }
+	}
     	"""
     	mod = SourceModule(code, no_extern_c = True)
     	func = mod.get_function("rand_setup")
