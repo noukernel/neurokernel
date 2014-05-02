@@ -278,7 +278,9 @@ __global__ void signal_cascade(
         double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
     
 	double output[2];
-        gen_rand_num(state, &output[0]);
+    gen_rand_num(state, &output[0]);
+    rand1[nid] = output[0];
+    rand2[nid] = output[1];
 
 	// Calculate next dt step
         %(type)s la = 0.5;
@@ -449,6 +451,8 @@ class Photoreceptor(BaseNeuron):
         # FIXME: Should I_in be the same as I?
         self.I_in = garray.to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
         self.Ca2 = garray.to_gpu( np.asarray( 0.00016, dtype=np.float64 ))
+        self.rand1 = garray.to_gpu( np.zeros (self.num_m, dtype = np.float64 ))
+        self.rand2 = garray.to_gpu( np.zeros (self.num_m, dtype = np.float64 ))
 
         # FIXME: Supposed to be Np[some id], but that doesn't exist yet...
         self.X_1 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
@@ -465,14 +469,11 @@ class Photoreceptor(BaseNeuron):
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
         self.gpu_block = (self.num_m,1,1)
         self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
-	self.state = garray.empty(self.num_m, np.float64)
+	    self.state = garray.empty(self.num_m, np.float64)
 
 	
-	self.rand = self.get_curand_int_func()
-	self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None,
-		self.state.gpudata,
-		2*self.num_m,
-		np.uint64(2))
+	    self.rand = self.get_curand_int_func()
+	    self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, 2*self.num_m, np.uint64(2))
 
         self.rpam = self.get_rpam_kernel()
         self.sig_cas = self.get_sig_cas_kernel()
@@ -497,8 +498,6 @@ class Photoreceptor(BaseNeuron):
         #        self.n_photons.gpudata,\
         #        self.Np.gpudata,\
         #        self.rand_index.gpudata)
-        self.rand1 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = self.num_m ))
-        self.rand2 = garray.to_gpu( np.random.uniform(low = 0.0, high = 1.0, size = self.num_m ))
 
         self.sig_cas.prepared_async_call(\
                 self.gpu_grid,\
