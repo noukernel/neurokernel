@@ -83,7 +83,7 @@ __global__ void rpam(
 { 
     bool not_converged = true; 
     %(type)s lambda_m, n_m, fe, fa, n_m_temp; 
-/    n_m = n_micro; 
+    n_m = n_micro; 
     lambda_m = 0; 
     float fx[6]; 
      
@@ -122,7 +122,7 @@ __global__ void rpam(
 
 sig_cas_src = """
 
-#define "curand_kernel.h"
+#include "curand_kernel.h"
 #define NNEU %(nneu)d
 
 extern "C" {
@@ -189,7 +189,7 @@ __device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
 __global__ void signal_cascade(
     int neu_num,
     %(type)s dt,
-    curandStateXORWOR_t* state,
+    curandStateXORWOW_t* state,
     %(type)s *I,
     %(type)s *I_in,
     %(type)s *V_m,
@@ -556,7 +556,6 @@ class Photoreceptor(BaseNeuron):
             self.DRI.gpudata)
         if self.debug:
             self.I_file.root.array.append(self.I.get().reshape((1,-1)))
-            self.V_file.root.array.append(self.V.get().reshape((1,-1)))
             
 
     def get_rpam_kernel(self):
@@ -662,4 +661,3 @@ class Photoreceptor(BaseNeuron):
     def post_run(self):
         if self.debug:
             self.I_file.close()
-            self.V_file.close()
