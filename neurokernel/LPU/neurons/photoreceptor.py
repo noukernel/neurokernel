@@ -296,6 +296,28 @@ __global__ void signal_cascade(
             X_6[nid] += -1;
         }
     }
+    // Shouldn't need this...but do.
+    if(X_1[nid] < 0){
+        X_1[nid] = 0;
+    }
+    if(X_2[nid] < 0){
+        X_2[nid] = 0;
+    }
+    if(X_3[nid] < 0){
+        X_3[nid] = 0;
+    }
+    if(X_4[nid] < 0){
+        X_4[nid] = 0;
+    }
+    if(X_5[nid] < 0){
+        X_5[nid] = 0;
+    }
+    if(X_6[nid] < 0){
+        X_6[nid] = 0;
+    }
+    if(X_7[nid] < 0){
+        X_7[nid] = 0;
+    }
 
     I_in[nid] = Tcurrent*X_7[nid];
     return;
@@ -380,7 +402,9 @@ class Photoreceptor(BaseNeuron):
         # FIXME: Make clean, actually use input file or something.
         # RPAM Inputs/Outputs
         self.n_photons = garray.to_gpu( np.asarray( random.randint(100,999), dtype=np.float64 ))
-        self.Np = garray.to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
+
+        # FIXME: Something wrong with RPAM. Add stimulus with ones for now.
+        self.Np = garray.to_gpu( np.ones(self.num_m, dtype=np.float64 ))
         r_n = np.array(range(self.num_m))
         np.random.shuffle( r_n )
         self.rand_index = garray.to_gpu( r_n )
@@ -425,14 +449,14 @@ class Photoreceptor(BaseNeuron):
     def neuron_class(self): return True
 
     def eval( self, st = None):
-        self.rpam.prepared_async_call(\
-                self.gpu_grid,\
-                self.gpu_block,\
-                st,\
-                self.num_neurons,\
-                self.n_photons.gpudata,\
-                self.Np.gpudata,\
-                self.rand_index.gpudata)
+        #self.rpam.prepared_async_call(\
+        #        self.gpu_grid,\
+        #        self.gpu_block,\
+        #        st,\
+        #        self.num_neurons,\
+        #        self.n_photons.gpudata,\
+        #        self.Np.gpudata,\
+        #        self.rand_index.gpudata)
 
         self.sig_cas.prepared_async_call(\
                 self.gpu_grid,\
