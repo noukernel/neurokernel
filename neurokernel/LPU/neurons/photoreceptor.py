@@ -189,7 +189,7 @@ __device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
 __device__ void gen_poisson_num(curandStateXORWOW_t *state, int* output, double lambda)
 {
     int tid = (blockIdx.x * NNEU) + threadIdx.x;
-	output[tid] = curand_uniform(&state[tid]);
+	output[0] = curand_uniform(&state[tid]);
 }
 
 __global__ void signal_cascade(
