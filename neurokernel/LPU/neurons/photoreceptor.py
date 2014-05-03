@@ -33,7 +33,7 @@ __global__ void hodgkin_huxley(
     int bid = blockIdx.x;
     int nid = bid;
 
-    %(type)s v, i_ext, sa, si, dra, dri;
+    %(type)s v, i_ext, sa, si, dra, dri, ddt;
 
     if( nid < neu_num ){
         v = V[nid];
@@ -42,29 +42,40 @@ __global__ void hodgkin_huxley(
         si = SI[nid];
         dra = DRA[nid];
         dri = DRI[nid];
+	ddt = dt/10;
 
-        %(type)s inf, tau;
-        // Calculate d_sa
-        inf = powf(1 / (1 + exp( (-30-v) / 13.5)) , 1/3);
-        tau = 0.13 + 3.39 * exp( -powf((-73-v),2) / powf(20,2) );
-        SA[nid] = sa + ((inf - sa) / tau) * dt;
+	for(int run_dmc = 0; run_dmc < 10; ++run_dmc)
+	{
 
-        // Calculate d_si
-        inf = 1 / (1 + exp((-55 - v) / -5.5) );
-        tau = 113 * exp( - powf((-71-v) , 2) / powf(29,2));
-        SI[nid] = si + ((inf - si) / tau) * dt;
+        	%(type)s inf, tau;
+        	// Calculate d_sa
+       		inf = powf(1 / (1 + exp( (-30-v) / 13.5)) , 1/3);
+        	tau = 0.13 + 3.39 * exp( -powf((-73-v),2) / powf(20,2) );
+        	sa = sa + ((inf - sa) / tau) * ddt;
 
-        // Calculate d_dra
-        inf = powf(1 / (1 + exp((-5-v)/9) ), 0.5);
-        tau = 0.5 + 5.75 * exp(-powf(-25-v, 2) / powf(32,2));
-        DRA[nid] = dra + ((inf - dra) / tau) * dt;
+        	// Calculate d_si
+        	inf = 1 / (1 + exp((-55 - v) / -5.5) );
+        	tau = 113 * exp( - powf((-71-v) , 2) / powf(29,2));
+        	si = si + ((inf - si) / tau) * ddt;
 
-        // Calculate d_dri
-        inf = 1 / (1 + exp((-25 - v) / -10.5));
-        tau = 890;
-        DRI[nid] = dri + ((inf - dri) / tau) * dt;
+        	// Calculate d_dra
+        	inf = powf(1 / (1 + exp((-5-v)/9) ), 0.5);
+        	tau = 0.5 + 5.75 * exp(-powf(-25-v, 2) / powf(32,2));
+        	dra = dra + ((inf - dra) / tau) * ddt;
 
-        V[nid] = v + (((i_ext - G_K*(v - E_K) - G_Cl*(v - E_Cl) - G_s*sa*si*(v - E_K) - G_dr*dra*dri*(v - E_K) - 0.093*(v - 10)) / C) * dt);
+        	// Calculate d_dri
+        	inf = 1 / (1 + exp((-25 - v) / -10.5));
+        	tau = 890;
+        	dri = dri + ((inf - dri) / tau) * ddt;
+
+        	v = v + (((i_ext - G_K*(v - E_K) - G_Cl*(v - E_Cl) - G_s*sa*si*(v - E_K) - G_dr*dra*dri*(v - E_K) - 0.093*(v - 10)) / C) * ddt);
+	}
+
+	SA[nid] = sa;
+	SI[nid] = si;
+	DRA[nid] = dra;
+	DRI[nid] = dri;
+	V[nid] = v;
     }
     return;
 }
