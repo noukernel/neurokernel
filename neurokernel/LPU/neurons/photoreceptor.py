@@ -211,7 +211,7 @@ __global__ void signal_cascade(
     %(type)s t_run = 0;
 
     //16: state vector:
-    double X1 = X_1[nid];
+    double X1 = Np[nid];
     double X2 = X_2[nid];
     double X3 = X_3[nid];
     double X4 = X_4[nid];
@@ -220,7 +220,7 @@ __global__ void signal_cascade(
     double X7 = X_7[nid];
 
     int max_run = 0;
-    while ((t_run < dt) || (max_run > MAX_RUN)) {
+    while ((t_run < dt) || (max_run < MAX_RUN)) {
         max_run += 1;
         I_in[nid] = Tcurrent*X7;
 
