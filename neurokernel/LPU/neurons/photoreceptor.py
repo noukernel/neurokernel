@@ -164,7 +164,7 @@ __global__ void signal_cascade(
 {
 
     int bid = blockIdx.x;
-    int nid = bid * NNEU + threadIdx.x;
+    int tid = bid * NNEU + threadIdx.x;
     %(type)s t_run = 0;
     int pois_num[1];
     int Np;
@@ -177,7 +177,7 @@ __global__ void signal_cascade(
     int mu;
     double av[12];
 
-    for(int nid = 0; nid < n_micro; nid += 1024){
+    for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
 
             gen_poisson_num(state, &pois_num[0], n_photon[0]/n_micro);
@@ -350,7 +350,7 @@ __global__ void calcium_dynamics(
 	%(type)s *C_star)
 {
     int bid = blockIdx.x;
-    int nid = bid * NNEU + threadIdx.x;
+    int tid = bid * NNEU + threadIdx.x;
 
     double I_Ca;
     double I_NaCa;
@@ -358,7 +358,7 @@ __global__ void calcium_dynamics(
     double f1;
     double f2;
 
-    for(int nid = 0; nid < n_micro; nid += 1024){
+    for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
 
             I_Ca = I_in[nid] * P_Ca;
@@ -431,7 +431,7 @@ class Photoreceptor(BaseNeuron):
 
         # Copies an initial V into V
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
-        self.gpu_block = (1024,1,1)
+        self.gpu_block = (512,1,1)
         self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
         self.state = garray.empty(self.num_m * 2, np.float64)
         self.rand = self.get_curand_int_func()
@@ -471,10 +471,11 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata,\
                 self.X_7.gpudata)
 
+        temp_I = 0
         for ii in xrange(1, len(self.I_in)):
-            self.I_HH += self.I_in[ii]
+            temp_I += self.I_in[ii]
 
-        self.I_HH = 15.7*self.I_HH
+        self.I_HH = temp_I/15.7
 
         # Dirty way of debugging
         print 'X_1: ', self.X_1
