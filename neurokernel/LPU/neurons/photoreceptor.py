@@ -130,6 +130,7 @@ extern "C" {
 
 #define NA 6.02*powf(10.0,23.0)
 #define uVillusVolume 3.0*powf(10.0, -9.0)
+#define n_micro 30000.0
 
 #define Kp 0.3
 #define Kn 0.18
@@ -185,6 +186,11 @@ __device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
 	output[1] = curand_uniform(&state[tid+1]); 
 }
 
+__device__ void gen_poisson_num(curandStateXORWOW_t *state, int* output, double lambda)
+{
+    int tid = (blockIdx.x * NNEU) + threadIdx.x;
+	output[tid] = curand_uniform(&state[tid]);
+}
 
 __global__ void signal_cascade(
     int neu_num,
@@ -193,7 +199,7 @@ __global__ void signal_cascade(
     %(type)s *I,
     %(type)s *I_in,
     %(type)s *V_m,
-    %(type)s *Np,
+    %(type)s *n_photon,
     %(type)s *rand1,
     %(type)s *rand2,
     %(type)s *Ca2,
@@ -209,6 +215,10 @@ __global__ void signal_cascade(
     int bid = blockIdx.x;
     int nid = bid * NNEU + threadIdx.x;
     %(type)s t_run = 0;
+
+    int pois_num[1];
+    gen_poisson_num(state, &pois_num[0], n_photon/n_micro);
+    int Np = pois_num[0];
 
     //16: state vector:
     double X1 = Np[nid];
@@ -506,7 +516,7 @@ class Photoreceptor(BaseNeuron):
                 self.I.gpudata,\
                 self.I_in.gpudata,\
                 self.V,\
-                self.Np.gpudata,\
+                self.n_photons.gpudata,\
                 self.rand1.gpudata,\
                 self.rand2.gpudata,\
                 self.Ca2.gpudata,\
