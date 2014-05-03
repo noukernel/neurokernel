@@ -182,7 +182,8 @@ __device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
 	
-	output[tid] = curand_uniform(&state[tid]); 
+	output[0] = curand_uniform(&state[tid]); 
+	output[1] = curand_uniform(&state[tid+1]); 
 }
 
 
@@ -469,11 +470,9 @@ class Photoreceptor(BaseNeuron):
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
         self.gpu_block = (self.num_m,1,1)
         self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
-	    self.state = garray.empty(self.num_m, np.float64)
-
-	
-	    self.rand = self.get_curand_int_func()
-	    self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, 2*self.num_m, np.uint64(2))
+        self.state = garray.empty(self.num_m, np.float64)
+        self.rand = self.get_curand_int_func()
+        self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, 2*self.num_m, np.uint64(2))
 
         self.rpam = self.get_rpam_kernel()
         self.sig_cas = self.get_sig_cas_kernel()
