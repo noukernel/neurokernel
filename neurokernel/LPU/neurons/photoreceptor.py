@@ -24,7 +24,7 @@ __global__ void hodgkin_huxley(
     int neu_num,
     %(type)s dt,
     %(type)s *V,
-    %(type)s *I,
+    double I,
     %(type)s *SA,
     %(type)s *SI,
     %(type)s *DRA,
@@ -37,7 +37,7 @@ __global__ void hodgkin_huxley(
 
     if( nid < neu_num ){
         v = V[nid];
-        i_ext = I[nid];
+        i_ext = I;
         sa = SA[nid];
         si = SI[nid];
         dra = DRA[nid];
@@ -482,6 +482,7 @@ class Photoreceptor(BaseNeuron):
         self.X_5 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
         self.X_6 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
         self.X_7 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
+	self.I_HH = garray.to_gpu( np.asarray( 0.0, dtype = np.float64 ))
 
         # No unique inputs/outputs for Calcium Dynamics
 
@@ -539,6 +540,11 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata,\
                 self.X_7.gpudata)
 
+	for ii in xrange(1, len(self.I_in)):
+		self.I_HH += self.I_in[ii]
+
+	self.I_HH = 15.7*self.I_HH
+
         # Dirty way of debugging
         print 'X_1: ', self.X_1
         print 'X_2: ', self.X_2
@@ -566,7 +572,7 @@ class Photoreceptor(BaseNeuron):
             self.num_neurons,\
             self.ddt * 1000,\
             self.V,\
-            self.I.gpudata,\
+            self.I_HH.gpudata,\
             self.SA.gpudata,\
             self.SI.gpudata,\
             self.DRA.gpudata,\
@@ -644,7 +650,7 @@ class Photoreceptor(BaseNeuron):
         func.prepare( [ np.int32, # neu_num
                         np.float64, # dt
                         np.intp, # V array
-                        np.intp, # I array
+                        np.float64, # I_HH
                         np.intp, # SA array
                         np.intp, # SI array
                         np.intp, # DRA array
