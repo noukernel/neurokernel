@@ -140,15 +140,23 @@ for ii = 1:n_m
         (G_T - X{3,ii} - X{2,ii} - X{4,ii}); X{4,ii}; X{4,ii}; X{5,ii}; 
         .5*(X{5,ii}*(X{5,ii}-1)*(T_T-X{7,ii})); X{7,ii}; Ca2(1,ii)*CaM_num; X{6,ii}];
 
-        c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP; 
-        Gamma_G; Kappa_Dstar; Gamma_PLCstar*(1+h_PLCstar*fn); 
-        Gamma_Dstar*(1+h_Dstar*fn); Kappa_Tstar*(1+h_TstarP*fp)/Kappa_Dstar^2;
-        Gamma_Tstar*(1+h_TstarN*fn); K_u; K_r];
+        c = [Gamma_Mstar*(1+h_Mstar*fn); 
+            Kappa_Gstar; 
+            Kappa_PLCstar; 
+            Gamma_GAP; 
+            Gamma_G; 
+            Kappa_Dstar; 
+            Gamma_PLCstar*(1+h_PLCstar*fn); 
+            Gamma_Dstar*(1+h_Dstar*fn); 
+            Kappa_Tstar*(1+h_TstarP*fp)/Kappa_Dstar^2;
+            Gamma_Tstar*(1+h_TstarN*fn); 
+            K_u; 
+            K_r];
 
 
         I_in(1,ii) = I_Tstar * X{7,ii};      % Initialize input current (X(7,1) is Tstar)
         I_Ca = P_Ca * I_in(1,ii);         % Calcium Current ~40%
-        I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2(1,ii)*exp(-V_m*F/R/T)));
+        I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o)) - ((Na_o^3)*Ca2(1,ii)*exp(-V_m*F/R/T)));
         I_Canet = I_Ca + 2*I_NaCa;
     end
 
@@ -219,7 +227,7 @@ for ii = 1:n_m
         % Update Current for Calcium
         I_in(1,ii) = I_Tstar*X{7,ii};      
         I_Ca = P_Ca * I_in(1,ii);         
-        I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o^2)) - ((Na_o^3)*Ca2(1,ii)*exp(-V_m*F/R/T)));
+        I_NaCa = K_NaCa*(((Na_i^3)*(Ca_o)) - ((Na_o^3)*Ca2(1,ii)*exp(-V_m*F/R/T)));
         I_Canet = I_Ca + 2*I_NaCa;
     
         % Update Calcium

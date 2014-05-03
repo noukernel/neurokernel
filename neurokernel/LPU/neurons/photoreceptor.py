@@ -182,7 +182,8 @@ __device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
 	
-	output[tid] = curand_uniform(&state[tid]); 
+	output[0] = curand_uniform(&state[tid]);
+	output[1] = curand_uniform(&state[tid+1]); 
 }
 
 
@@ -242,7 +243,7 @@ __global__ void signal_cascade(
         //31
         double fp = (powf((Ca2[nid]/Kp), mp)) / (1+powf((Ca2[nid]/Kp), mp));
 
-	    double C_star_conc = X6/uVillusVolume/NA*powf(10.0,12.0);
+	double C_star_conc = (X6/(uVillusVolume*NA))*powf(10.0,12.0);
 
         //32
         double fn = ns * powf((C_star_conc/Kn), mn)/(1+(powf((C_star_conc/Kn), mn)));
@@ -278,9 +279,9 @@ __global__ void signal_cascade(
         double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
     
 	double output[2];
-    gen_rand_num(state, &output[0]);
-    rand1[nid] = output[0];
-    rand2[nid] = output[1];
+    	gen_rand_num(state, &output[0]);
+    	rand1[nid] = output[0];
+    	rand2[nid] = output[1];
 
 	// Calculate next dt step
         %(type)s la = 0.5;
@@ -380,7 +381,7 @@ ca_dyn_src = """
 #define K_r 5.5
 #define K_u 30
 #define C_T 903
-#define K_Ca 100
+#define K_Ca 1000
 
 __global__ void calcium_dynamics(
     int neu_num,
@@ -397,17 +398,17 @@ __global__ void calcium_dynamics(
     double I_NaCa = K_NaCa * (powf(Na_i,3.0) * Ca_o - powf(Na_o,3.0) * Ca2[nid] * exp((-V_m[neu_num]*F) / (R*T)));
 
     //36
-    double I_CaNet = I_Ca - 2*I_NaCa;
+    double I_CaNet = I_Ca + 2*I_NaCa;
 
     //41
     double f1 = K_NaCa * powf(Na_i, 3.0)*Ca_o / (v*F);
     //42
     double f2 = (K_NaCa * exp((-V_m[neu_num]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
 
-    double CaM_conc = (C_T - C_star[nid])/v/NA*powf(10.0,12.0);
+    double CaM_conc = ((C_T - C_star[nid])/(v*NA))*powf(10.0,12.0);
 
     //40 (composed of 37,38,39)
-    Ca2[nid] = (I_CaNet/(2*v*F) + n*K_r*C_star[nid]/v/NA*powf(10.0,12.0) + f1)/(n*K_u*CaM_conc + K_Ca + f2);
+    Ca2[nid] = (I_CaNet/(2*v*F) + (n*K_r*C_star[nid]/(v*NA))*powf(10.0,12.0) + f1)/(n*K_u*CaM_conc + K_Ca + f2);
 
     //I[nid] += I_in[nid];
     
@@ -469,11 +470,11 @@ class Photoreceptor(BaseNeuron):
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
         self.gpu_block = (self.num_m,1,1)
         self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
-	    self.state = garray.empty(self.num_m, np.float64)
+	self.state = garray.empty(self.num_m, np.float64)
 
 	
-	    self.rand = self.get_curand_int_func()
-	    self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, 2*self.num_m, np.uint64(2))
+	self.rand = self.get_curand_int_func()
+	self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, 2*self.num_m, np.uint64(2))
 
         self.rpam = self.get_rpam_kernel()
         self.sig_cas = self.get_sig_cas_kernel()
