@@ -181,7 +181,7 @@ __global__ void signal_cascade(
         if (nid < n_micro) {
 
             gen_poisson_num(state, &pois_num[0], n_photon[0]/n_micro);
-            Np = pois_num[0];
+            Np = 1;//pois_num[0];
 
            //16: state vector:
             double X1 = Np;
