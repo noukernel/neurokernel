@@ -437,7 +437,7 @@ class Photoreceptor(BaseNeuron):
         self.LPU_id = LPU_id
         self.ddt = dt / self.steps
 
-        self.num_m = 2 # number microvilii
+        self.num_m = 128 # number microvilii
 
         # Gpot neuron Inputs/Outputs
         self.V = V
