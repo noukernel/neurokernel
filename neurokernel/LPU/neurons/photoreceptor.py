@@ -71,54 +71,6 @@ __global__ void hodgkin_huxley(
 
 """
 
-rpam_src = """
-#define n_micro 30000.0
-#define NNEU %(nneu)d
-
-__global__ void rpam( 
-    int neu_num,
-    %(type)s *Np, 
-    %(type)s *n_photon, 
-    %(type)s *rand) 
-{ 
-    %(type)s lambda_m, n_m, fe, fa, n_m_temp; 
-    n_m = n_micro; 
-    lambda_m = 0; 
-    float fx[6]; 
-     
-    int factorial = 1; 
-
-    factorial = 1;
-    double p[20];
-    lambda_m = n_photon[neu_num]/n_micro;
-    for(int ii = 0; ii < 20; ++ii){
-        if (ii > 0){
-            factorial = factorial * ii;
-        }
-        p[ii] = exp(-lambda_m) * (pow(lambda_m, ii)) / factorial;
-    }
-
-    int num_abs[20];
-    for(int ii = 1; ii < 20; ++ii){
-        num_abs[ii] = roundf(p[ii]*n_micro);
-    }
-    num_abs[0] = 0;
-    // CUDA doesn't like doing things in one nice step?
-    int temp;
-    int temp_index;
-    for(int ii = 1; ii < 20; ++ii){
-        for(int jj = 0; jj < num_abs[ii];++jj){
-            temp = jj + num_abs[ii-1];
-            temp_index = rand[temp];
-            Np[temp_index] = ii;
-            //Np[rand[jj+num_abs[ii -1]]] = ii;
-        }
-    }
-    return;
-}
-
-"""
-
 sig_cas_src = """
 
 #include "curand_kernel.h"
@@ -201,8 +153,6 @@ __global__ void signal_cascade(
     %(type)s *I_in,
     %(type)s *V_m,
     %(type)s *n_photon,
-    %(type)s *rand1,
-    %(type)s *rand2,
     %(type)s *Ca2,
     %(type)s *X_1,
     %(type)s *X_2,
@@ -291,8 +241,6 @@ __global__ void signal_cascade(
                 }
     
     	        gen_rand_num(state, &output[0]);
-    	        rand1[nid] = output[0];
-    	        rand2[nid] = output[1];
 
 	            // Calculate next dt step
                 t_run += (1 / (la + as)) * logf(1/output[0]);
@@ -461,8 +409,6 @@ class Photoreceptor(BaseNeuron):
         # RPAM Inputs/Outputs
         self.n_photons = garray.to_gpu( np.asarray( random.randint(100,999), dtype=np.float64 ))
 
-        # FIXME: Something wrong with RPAM. Add stimulus with ones for now.
-        self.Np = garray.to_gpu( np.ones(self.num_m, dtype=np.float64 ))
         #r_n = np.array(range(self.num_m))
         #np.random.shuffle( r_n )
         #self.rand_index = garray.to_gpu( r_n )
@@ -471,10 +417,7 @@ class Photoreceptor(BaseNeuron):
         # FIXME: Should I_in be the same as I?
         self.I_in = garray.to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
         self.Ca2 = garray.to_gpu( np.ones( self.num_m, dtype=np.float64 )* 0.00016)
-        self.rand1 = garray.to_gpu( np.zeros (self.num_m, dtype = np.float64 ))
-        self.rand2 = garray.to_gpu( np.zeros (self.num_m, dtype = np.float64 ))
 
-        # FIXME: Supposed to be Np[some id], but that doesn't exist yet...
         self.X_1 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
         self.X_2 = garray.to_gpu( np.ones( self.num_m, dtype=np.float64 ) * 50)
         self.X_3 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
@@ -482,7 +425,7 @@ class Photoreceptor(BaseNeuron):
         self.X_5 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
         self.X_6 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
         self.X_7 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
-	self.I_HH = garray.to_gpu( np.asarray( 0.0, dtype = np.float64 ))
+        self.I_HH = garray.to_gpu( np.asarray( 0.0, dtype = np.float64 ))
 
         # No unique inputs/outputs for Calcium Dynamics
 
@@ -490,11 +433,10 @@ class Photoreceptor(BaseNeuron):
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
         self.gpu_block = (1024,1,1)
         self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
-        self.state = garray.empty(self.num_m, np.float64)
+        self.state = garray.empty(self.num_m * 2, np.float64)
         self.rand = self.get_curand_int_func()
         self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, 2*self.num_m, np.uint64(2))
 
-        self.rpam = self.get_rpam_kernel()
         self.sig_cas = self.get_sig_cas_kernel()
         self.ca_dyn = self.get_ca_dyn_kernel()
         self.update = self.get_gpu_kernel()
@@ -509,15 +451,6 @@ class Photoreceptor(BaseNeuron):
     def neuron_class(self): return True
 
     def eval( self, st = None):
-        #self.rpam.prepared_async_call(\
-        #        self.gpu_grid,\
-        #        self.gpu_block,\
-        #        st,\
-        #        self.num_neurons,\
-        #        self.n_photons.gpudata,\
-        #        self.Np.gpudata,\
-        #        self.rand_index.gpudata)
-
         self.sig_cas.prepared_async_call(\
                 self.gpu_grid,\
                 self.gpu_block,\
@@ -529,8 +462,6 @@ class Photoreceptor(BaseNeuron):
                 self.I_in.gpudata,\
                 self.V,\
                 self.n_photons.gpudata,\
-                self.rand1.gpudata,\
-                self.rand2.gpudata,\
                 self.Ca2.gpudata,\
                 self.X_1.gpudata,\
                 self.X_2.gpudata,\
@@ -540,10 +471,10 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata,\
                 self.X_7.gpudata)
 
-	for ii in xrange(1, len(self.I_in)):
-		self.I_HH += self.I_in[ii]
+        for ii in xrange(1, len(self.I_in)):
+            self.I_HH += self.I_in[ii]
 
-	self.I_HH = 15.7*self.I_HH
+        self.I_HH = 15.7*self.I_HH
 
         # Dirty way of debugging
         print 'X_1: ', self.X_1
@@ -580,21 +511,6 @@ class Photoreceptor(BaseNeuron):
         if self.debug:
             self.I_file.root.array.append(self.I.get().reshape((1,-1)))
             
-
-    def get_rpam_kernel(self):
-        #cuda_src = open('./rpam.cu', 'r')
-        #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
-        mod = SourceModule( \
-                rpam_src % {"type": dtype_to_ctype(np.float64),\
-                "nneu": self.gpu_block[0] },\
-                options=["--ptxas-options=-v"])
-        func = mod.get_function("rpam")
-        func.prepare( [ np.int32, # neu_num
-                        np.intp,   # n_photons
-                        np.intp,   # Np
-                        np.intp])   # rand_index
-        return func
-
     def get_sig_cas_kernel(self):
         #cuda_src = open('./sig_cas.cu', 'r')
         #mod = SourceModule( cuda_src, options = ["--ptxas-options=-v"])
@@ -609,9 +525,7 @@ class Photoreceptor(BaseNeuron):
                         np.intp,    # I
                         np.intp,   # I_in
                         np.intp,   # V_m
-                        np.intp,   # Np
-                        np.intp,   # rand1
-                        np.intp,   # rand2
+                        np.intp,   # n_photon
                         np.intp,   # Ca2
                         np.intp,   # X[1]
                         np.intp,   # X[2]
@@ -668,7 +582,7 @@ class Photoreceptor(BaseNeuron):
 	        	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 	            	int total_threads = blockDim.x * gridDim.x;
 
-	            	for(int i = tid; i < size; i+=total_threads)
+	            	for(int i = tid; i < 30000; i+=size)
 	            	{
         	        	curand_init(seed, i, 0, &state[i]);
     	            	}
