@@ -230,7 +230,7 @@ __global__ void signal_cascade(
     double X7 = X_7[nid];
 
     int max_run = 0;
-    while ((t_run < dt) || (max_run < MAX_RUN)) {
+    while ((t_run < dt) && (max_run < MAX_RUN)) {
         max_run += 1;
         I_in[nid] = Tcurrent*X7;
 
