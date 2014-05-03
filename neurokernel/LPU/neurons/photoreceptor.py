@@ -31,7 +31,7 @@ __global__ void hodgkin_huxley(
     %(type)s *DRI)
 {
     int bid = blockIdx.x;
-    int nid = bid * NNEU + threadIdx.x;
+    int nid = bid;
 
     %(type)s v, i_ext, sa, si, dra, dri;
 
@@ -175,6 +175,7 @@ extern "C" {
 #define TT 25
 #define CTconc 0.5
 #define CTnum 903
+#define la 0.5
 
 #define MAX_RUN 20
 
@@ -215,153 +216,151 @@ __global__ void signal_cascade(
     int bid = blockIdx.x;
     int nid = bid * NNEU + threadIdx.x;
     %(type)s t_run = 0;
-
     int pois_num[1];
-    gen_poisson_num(state, &pois_num[0], n_photon[0]/n_micro);
-    int Np = pois_num[0];
+    int Np;
+    int max_run;
+    double h[12];
+    double c[12];
+    double a[12];
+    double as;
+	double output[2];
+    int mu;
+    double av[12];
 
-    //16: state vector:
-    double X1 = Np;
-    double X2 = X_2[nid];
-    double X3 = X_3[nid];
-    double X4 = X_4[nid];
-    double X5 = X_5[nid];
-    double X6 = X_6[nid];
-    double X7 = X_7[nid];
+    for(int nid = 0; nid < n_micro; nid += 1024){
+        if (nid < n_micro) {
 
-    int max_run = 0;
-    while ((t_run < dt) && (max_run < MAX_RUN)) {
-        max_run += 1;
-        I_in[nid] = Tcurrent*X7;
+            gen_poisson_num(state, &pois_num[0], n_photon[0]/n_micro);
+            Np = pois_num[0];
 
-        double h[12];
-        //18: reactant pairs - not concentrations??
-        h[0] = X1;
-        h[1] = X1*X2;
-        h[2] = X3*(PLCT - X4);
-        h[3] = X3*X4;
-        h[4] = GT-X2-X3-X4;
-        h[5] = X4;
-        h[6] = X4; //NOT A TYPO
-        h[7] = X5;
-        h[8] = (X5*(X5-1)*(TT-X7))/2;
-        h[9] = X7;
-        h[10] = (CTnum - X6)*Ca2[nid];
-        h[11] = X6;
+           //16: state vector:
+            double X1 = Np;
+            double X2 = X_2[nid];
+            double X3 = X_3[nid];
+            double X4 = X_4[nid];
+            double X5 = X_5[nid];
+            double X6 = X_6[nid];
+            double X7 = X_7[nid];
 
-        //31
-        double fp = (powf((Ca2[nid]/Kp), mp)) / (1+powf((Ca2[nid]/Kp), mp));
+            max_run = 0;
+            t_run = 0;
+            while ((t_run < dt) && (max_run < MAX_RUN)) {
+                max_run += 1;
+                I_in[nid] = Tcurrent*X7;
 
-        double C_star_conc = (X6/(uVillusVolume*NA))*powf(10.0,12.0);
+                //18: reactant pairs - not concentrations??
+                h[0] = X1;
+                h[1] = X1*X2;
+                h[2] = X3*(PLCT - X4);
+                h[3] = X3*X4;
+                h[4] = GT-X2-X3-X4;
+                h[5] = X4;
+                h[6] = X4; //NOT A TYPO
+                h[7] = X5;
+                h[8] = (X5*(X5-1)*(TT-X7))/2;
+                h[9] = X7;
+                h[10] = (CTnum - X6)*Ca2[nid];
+                h[11] = X6;
 
-        //32
-        double fn = ns * powf((C_star_conc/Kn), mn)/(1+(powf((C_star_conc/Kn), mn)));
+                //31
+                double fp = (powf((Ca2[nid]/Kp), mp)) / (1+powf((Ca2[nid]/Kp), mp));
 
-        double c[12];
+                double C_star_conc = (X6/(uVillusVolume*NA))*powf(10.0,12.0);
 
-        c[0] = DrateM * (1 + (hM*fn) );
-        c[1] = ArateG;
-        c[2] = AratePLC;
-        c[3] = DrateGAP;
-        c[4] = DrateG;
-        c[5] = ArateD;
-        c[6] = DratePLC * (1 + (hPLC*fn) );
-        c[7] = DrateD*(1 + (hD*fn) );
-        c[8] = (ArateT*(1 + (hTpos*fp) ))/(ArateK*ArateK);
-        c[9] = DrateT*(1 + (hTneg*fn) );
-        c[10] = CaUptakeRate;
-        c[11] = CaReleaseRate;
+                //32
+                double fn = ns * powf((C_star_conc/Kn), mn)/(1+(powf((C_star_conc/Kn), mn)));
 
-        //need an a vector:
-        double a0 = c[0]*h[0];
-        double a1 = c[1]*h[1];
-        double a2 = c[2]*h[2];
-        double a3 = c[3]*h[3];
-        double a4 = c[4]*h[4];
-        double a5 = c[5]*h[5];
-        double a6 = c[6]*h[6];
-        double a7 = c[7]*h[7];
-        double a8 = c[8]*h[8];
-        double a9 = c[9]*h[9];
-        double a10 = c[10]*h[10];
-        double a11 = c[11]*h[11];
-        double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
+                c[0] = DrateM * (1 + (hM*fn) );
+                c[1] = ArateG;
+                c[2] = AratePLC;
+                c[3] = DrateGAP;
+                c[4] = DrateG;
+                c[5] = ArateD;
+                c[6] = DratePLC * (1 + (hPLC*fn) );
+                c[7] = DrateD*(1 + (hD*fn) );
+                c[8] = (ArateT*(1 + (hTpos*fp) ))/(ArateK*ArateK);
+                c[9] = DrateT*(1 + (hTneg*fn) );
+                c[10] = CaUptakeRate;
+                c[11] = CaReleaseRate;
+
+                //need an a vector:
+                as = 0;
+                for(int ii = 0; ii < 12; ++ii) {
+                    a[ii] = c[ii]*h[ii];
+                    as += a[ii];
+                }
     
-	    double output[2];
-    	gen_rand_num(state, &output[0]);
-    	rand1[nid] = output[0];
-    	rand2[nid] = output[1];
+    	        gen_rand_num(state, &output[0]);
+    	        rand1[nid] = output[0];
+    	        rand2[nid] = output[1];
 
-	// Calculate next dt step
-        %(type)s la = 0.5;
-        t_run += (1 / (la + as)) * logf(1/output[0]);
+	            // Calculate next dt step
+                t_run += (1 / (la + as)) * logf(1/output[0]);
 
-        double av[12];
-        av[0] = h[0]*c[0];
-        double hc[12];
-        hc[0] = av[0];
-        int mu = 0;
-        // 12 possible reaction
-        for(int ii = 1; ii < 12; ++ii){
-            hc[ii] = c[ii]*h[ii];
-            av[ii] = av[ii-1] + hc[ii];
-            if((output[1]*as > av[ii - 1]) && (output[1]*as <= av[ii])){
-                mu = ii;
+                av[0] = a[0];
+                mu = 0;
+                // 12 possible reaction
+                for(int ii = 1; ii < 12; ++ii){
+                    av[ii] = av[ii-1] + a[ii];
+                    if((output[1]*as > av[ii - 1]) && (output[1]*as <= av[ii])){
+                        mu = ii;
+                    }
+                }
+                if(mu == 0) {
+                    X_1[nid] += -1;
+                } else if (mu == 1){
+                    X_2[nid] += -1;
+                    X_3[nid] += 1;
+                } else if (mu == 2){
+                    X_3[nid] += -1;
+                    X_4[nid] += 1;
+                } else if (mu == 3){
+                    X_3[nid] += -1;
+                } else if (mu == 4){
+                    X_2[nid] += 1;
+                } else if (mu == 5){
+                    X_5[nid] += 1;
+                } else if (mu == 6){
+                    X_4[nid] += -1;
+                } else if (mu == 7){
+                    X_5[nid] += -1;
+                } else if (mu == 8){
+                    X_5[nid] += -2;
+                    X_7[nid] += 1;
+                } else if (mu == 9){
+                    X_7[nid] += -1;
+                } else if (mu == 10){
+                    X_6[nid] += 1;
+                } else {
+                    X_6[nid] += -1;
+                }
             }
-        }
-        if(mu == 0) {
-            X_1[nid] += -1;
-        } else if (mu == 1){
-            X_2[nid] += -1;
-            X_3[nid] += 1;
-        } else if (mu == 2){
-            X_3[nid] += -1;
-            X_4[nid] += 1;
-        } else if (mu == 3){
-            X_3[nid] += -1;
-        } else if (mu == 4){
-            X_2[nid] += 1;
-        } else if (mu == 5){
-            X_5[nid] += 1;
-        } else if (mu == 6){
-            X_4[nid] += -1;
-        } else if (mu == 7){
-            X_5[nid] += -1;
-        } else if (mu == 8){
-            X_5[nid] += -2;
-            X_7[nid] += 1;
-        } else if (mu == 9){
-            X_7[nid] += -1;
-        } else if (mu == 10){
-            X_6[nid] += 1;
-        } else {
-            X_6[nid] += -1;
+
+            if(X_1[nid] < 0){
+                X_1[nid] = 0;
+            }
+            if(X_2[nid] < 0){
+                X_2[nid] = 0;
+            }
+            if(X_3[nid] < 0){
+                X_3[nid] = 0;
+            }
+            if(X_4[nid] < 0){
+                X_4[nid] = 0;
+            }
+            if(X_5[nid] < 0){
+                X_5[nid] = 0;
+            }
+            if(X_6[nid] < 0){
+                X_6[nid] = 0;
+            }
+            if(X_7[nid] < 0){
+                X_7[nid] = 0;
+            }
+
+            I_in[nid] = Tcurrent*X_7[nid];
         }
     }
-
-    if(X_1[nid] < 0){
-        X_1[nid] = 0;
-    }
-    if(X_2[nid] < 0){
-        X_2[nid] = 0;
-    }
-    if(X_3[nid] < 0){
-        X_3[nid] = 0;
-    }
-    if(X_4[nid] < 0){
-        X_4[nid] = 0;
-    }
-    if(X_5[nid] < 0){
-        X_5[nid] = 0;
-    }
-    if(X_6[nid] < 0){
-        X_6[nid] = 0;
-    }
-    if(X_7[nid] < 0){
-        X_7[nid] = 0;
-    }
-
-    I_in[nid] = Tcurrent*X_7[nid];
     return;
 }
 }
@@ -392,6 +391,7 @@ ca_dyn_src = """
 #define C_T 903
 #define K_Ca 1000
 #define CaM_conc 0.5
+#define n_micro 30000.0
 
 __global__ void calcium_dynamics(
     int neu_num,
@@ -404,23 +404,34 @@ __global__ void calcium_dynamics(
     int bid = blockIdx.x;
     int nid = bid * NNEU + threadIdx.x;
 
-    double I_Ca = I_in[nid] * P_Ca;
-    double I_NaCa = K_NaCa * ( (powf(Na_i,3.0) * Ca_o) - (powf(Na_o,3.0) * Ca2[nid] * exp((-V_m[neu_num]*F) / (R*T))) );
+    double I_Ca;
+    double I_NaCa;
+    double I_CaNet;
+    double f1;
+    double f2;
 
-    //36
-    double I_CaNet = I_Ca + 2*I_NaCa;
+    for(int nid = 0; nid < n_micro; nid += 1024){
+        if (nid < n_micro) {
 
-    //41
-    double f1 = K_NaCa * powf(Na_i, 3.0)*Ca_o / (v*F);
-    //42
-    double f2 = (K_NaCa * exp((-V_m[neu_num]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
+            I_Ca = I_in[nid] * P_Ca;
+            I_NaCa = K_NaCa * ( (powf(Na_i,3.0) * Ca_o) - (powf(Na_o,3.0) * Ca2[nid] * exp((-V_m[neu_num]*F) / (R*T))) );
 
-    //40 (composed of 37,38,39)
-    Ca2[nid] = (I_CaNet/(2*v*F) + (n*K_r* ((C_star[nid]/(v*NA))*powf(10.0,12.0)) + f1))/(n*K_u*CaM_conc + K_Ca + f2);
+            //36
+            I_CaNet = I_Ca + 2*I_NaCa;
 
-    //I[nid] += I_in[nid];
+            //41
+            f1 = K_NaCa * powf(Na_i, 3.0)*Ca_o / (v*F);
+            //42
+            f2 = (K_NaCa * exp((-V_m[neu_num]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
+
+            //40 (composed of 37,38,39)
+            Ca2[nid] = (I_CaNet/(2*v*F) + (n*K_r* ((C_star[nid]/(v*NA))*powf(10.0,12.0)) + f1))/(n*K_u*CaM_conc + K_Ca + f2);
+
+            //I[nid] += I_in[nid];
     
-    //I[nid] = I[neu_num] * pow(10, 5);
+            //I[nid] = I[neu_num] * pow(10, 5);
+        }
+    }
     return;
 }
 
@@ -437,7 +448,7 @@ class Photoreceptor(BaseNeuron):
         self.LPU_id = LPU_id
         self.ddt = dt / self.steps
 
-        self.num_m = 128 # number microvilii
+        self.num_m = 30000 # number microvilii
 
         # Gpot neuron Inputs/Outputs
         self.V = V
@@ -452,14 +463,14 @@ class Photoreceptor(BaseNeuron):
 
         # FIXME: Something wrong with RPAM. Add stimulus with ones for now.
         self.Np = garray.to_gpu( np.ones(self.num_m, dtype=np.float64 ))
-        r_n = np.array(range(self.num_m))
-        np.random.shuffle( r_n )
-        self.rand_index = garray.to_gpu( r_n )
+        #r_n = np.array(range(self.num_m))
+        #np.random.shuffle( r_n )
+        #self.rand_index = garray.to_gpu( r_n )
 
         # Signal Cascade Inputs/Outputs
         # FIXME: Should I_in be the same as I?
         self.I_in = garray.to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
-        self.Ca2 = garray.to_gpu( np.asarray( 0.00016, dtype=np.float64 ))
+        self.Ca2 = garray.to_gpu( np.ones( self.num_m, dtype=np.float64 )* 0.00016)
         self.rand1 = garray.to_gpu( np.zeros (self.num_m, dtype = np.float64 ))
         self.rand2 = garray.to_gpu( np.zeros (self.num_m, dtype = np.float64 ))
 
@@ -476,7 +487,7 @@ class Photoreceptor(BaseNeuron):
 
         # Copies an initial V into V
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
-        self.gpu_block = (self.num_m,1,1)
+        self.gpu_block = (1024,1,1)
         self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
         self.state = garray.empty(self.num_m, np.float64)
         self.rand = self.get_curand_int_func()
