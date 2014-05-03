@@ -148,7 +148,7 @@ for ii = 1:n_m
             Kappa_Dstar; 
             Gamma_PLCstar*(1+h_PLCstar*fn); 
             Gamma_Dstar*(1+h_Dstar*fn); 
-            Kappa_Tstar*(1+h_TstarP*fp)/Kappa_Dstar^2;
+            Kappa_Tstar*(1+h_TstarP*fp)/K_Dstar^2;
             Gamma_Tstar*(1+h_TstarN*fn); 
             K_u; 
             K_r];
@@ -178,10 +178,6 @@ for ii = 1:n_m
     end
     %}
     while (t < ddt)
-    
-
-        
-
     
         X_old = [X{1,ii}, X{2,ii}, X{3,ii}, X{4,ii}, X{5,ii}, X{6,ii}, X{7,ii}];
     
@@ -221,7 +217,7 @@ for ii = 1:n_m
         % Update c
         c = [Gamma_Mstar*(1+h_Mstar*fn); Kappa_Gstar; Kappa_PLCstar; Gamma_GAP; 
         Gamma_G; Kappa_Dstar; Gamma_PLCstar*(1+h_PLCstar*fn); 
-        Gamma_Dstar*(1+h_Dstar*fn); Kappa_Tstar*(1+h_TstarP*fp)/Kappa_Dstar^2;
+        Gamma_Dstar*(1+h_Dstar*fn); Kappa_Tstar*(1+h_TstarP*fp)/K_Dstar^2;
         Gamma_Tstar*(1+h_TstarN*fn); K_u; K_r];
         
         % Update Current for Calcium

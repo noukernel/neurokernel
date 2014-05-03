@@ -81,7 +81,6 @@ __global__ void rpam(
     %(type)s *n_photon, 
     %(type)s *rand) 
 { 
-    bool not_converged = true; 
     %(type)s lambda_m, n_m, fe, fa, n_m_temp; 
     n_m = n_micro; 
     lambda_m = 0; 
@@ -223,7 +222,7 @@ __global__ void signal_cascade(
     int max_run = 0;
     while ((t_run < dt) || (max_run > MAX_RUN)) {
         max_run += 1;
-        double I_in = Tcurrent*X7;
+        I_in[nid] = Tcurrent*X7;
 
         double h[12];
         //18: reactant pairs - not concentrations??
@@ -243,23 +242,23 @@ __global__ void signal_cascade(
         //31
         double fp = (powf((Ca2[nid]/Kp), mp)) / (1+powf((Ca2[nid]/Kp), mp));
 
-	double C_star_conc = (X6/(uVillusVolume*NA))*powf(10.0,12.0);
+        double C_star_conc = (X6/(uVillusVolume*NA))*powf(10.0,12.0);
 
         //32
         double fn = ns * powf((C_star_conc/Kn), mn)/(1+(powf((C_star_conc/Kn), mn)));
 
         double c[12];
 
-        c[0] = DrateM * (1+hM*fn);
+        c[0] = DrateM * (1 + (hM*fn) );
         c[1] = ArateG;
         c[2] = AratePLC;
         c[3] = DrateGAP;
         c[4] = DrateG;
         c[5] = ArateD;
-        c[6] = DratePLC * (1+hPLC*fn);
-        c[7] = DrateD*(1+hD*fn);
-        c[8] = (ArateT*(1+hTpos*fp))/(ArateK*ArateK);
-        c[9] = DrateT*(1+hTneg*fn);
+        c[6] = DratePLC * (1 + (hPLC*fn) );
+        c[7] = DrateD*(1 + (hD*fn) );
+        c[8] = (ArateT*(1 + (hTpos*fp) ))/(ArateK*ArateK);
+        c[9] = DrateT*(1 + (hTneg*fn) );
         c[10] = CaUptakeRate;
         c[11] = CaReleaseRate;
 
@@ -278,7 +277,7 @@ __global__ void signal_cascade(
         double a11 = c[11]*h[11];
         double as = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7 + a8 + a9 + a10 + a11;
     
-	double output[2];
+	    double output[2];
     	gen_rand_num(state, &output[0]);
     	rand1[nid] = output[0];
     	rand2[nid] = output[1];
@@ -382,6 +381,7 @@ ca_dyn_src = """
 #define K_u 30
 #define C_T 903
 #define K_Ca 1000
+#define CaM_conc 0.5
 
 __global__ void calcium_dynamics(
     int neu_num,
@@ -395,7 +395,7 @@ __global__ void calcium_dynamics(
     int nid = bid * NNEU + threadIdx.x;
 
     double I_Ca = I_in[nid] * P_Ca;
-    double I_NaCa = K_NaCa * (powf(Na_i,3.0) * Ca_o - powf(Na_o,3.0) * Ca2[nid] * exp((-V_m[neu_num]*F) / (R*T)));
+    double I_NaCa = K_NaCa * ( (powf(Na_i,3.0) * Ca_o) - (powf(Na_o,3.0) * Ca2[nid] * exp((-V_m[neu_num]*F) / (R*T))) );
 
     //36
     double I_CaNet = I_Ca + 2*I_NaCa;
@@ -405,10 +405,8 @@ __global__ void calcium_dynamics(
     //42
     double f2 = (K_NaCa * exp((-V_m[neu_num]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
 
-    double CaM_conc = ((C_T - C_star[nid])/(v*NA))*powf(10.0,12.0);
-
     //40 (composed of 37,38,39)
-    Ca2[nid] = (I_CaNet/(2*v*F) + (n*K_r*C_star[nid]/(v*NA))*powf(10.0,12.0) + f1)/(n*K_u*CaM_conc + K_Ca + f2);
+    Ca2[nid] = (I_CaNet/(2*v*F) + (n*K_r* ((C_star[nid]/(v*NA))*powf(10.0,12.0)) + f1))/(n*K_u*CaM_conc + K_Ca + f2);
 
     //I[nid] += I_in[nid];
     
@@ -504,7 +502,7 @@ class Photoreceptor(BaseNeuron):
                 st,\
                 self.num_neurons,\
                 self.ddt * 1000,\
-		self.state.gpudata,\
+                self.state.gpudata,\
                 self.I.gpudata,\
                 self.I_in.gpudata,\
                 self.V,\
