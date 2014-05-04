@@ -24,7 +24,7 @@ __global__ void hodgkin_huxley(
     int neu_num,
     %(type)s dt,
     %(type)s *V,
-    double I,
+    %(type)s *I,
     %(type)s *SA,
     %(type)s *SI,
     %(type)s *DRA,
@@ -37,7 +37,7 @@ __global__ void hodgkin_huxley(
 
     if( nid < neu_num ){
         v = V[nid];
-        i_ext = I;
+        i_ext = I[nid];
         sa = SA[nid];
         si = SI[nid];
         dra = DRA[nid];
@@ -153,7 +153,7 @@ __device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
 __device__ void gen_poisson_num(curandStateXORWOW_t *state, int* output, double lambda)
 {
     int tid = (blockIdx.x * NNEU) + threadIdx.x;
-	output[0] = curand_uniform(&state[tid]);
+	output[0] = curand_poisson(&state[tid], lambda);
 }
 
 __global__ void signal_cascade(
@@ -192,7 +192,7 @@ __global__ void signal_cascade(
         if (nid < n_micro) {
 
             gen_poisson_num(state, &pois_num[0], n_photon[0]/n_micro);
-            Np = 1;//pois_num[0];
+            Np = pois_num[0];
 
            //16: state vector:
             double X1 = Np;
@@ -520,7 +520,7 @@ class Photoreceptor(BaseNeuron):
             self.num_neurons,\
             self.ddt * 1000,\
             self.V,\
-            self.I_HH,\
+            self.I_HH.gpudata,\
             self.SA.gpudata,\
             self.SI.gpudata,\
             self.DRA.gpudata,\
@@ -581,7 +581,7 @@ class Photoreceptor(BaseNeuron):
         func.prepare( [ np.int32, # neu_num
                         np.float64, # dt
                         np.intp, # V array
-                        np.float64, # I_HH
+                        np.intp, # I_HH
                         np.intp, # SA array
                         np.intp, # SI array
                         np.intp, # DRA array
@@ -596,13 +596,12 @@ class Photoreceptor(BaseNeuron):
 		__global__ void 
 	        rand_setup(curandStateXORWOW_t* state, int size, unsigned long long seed)
 	        {
-	        	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	            	int total_threads = blockDim.x * gridDim.x;
+                    int tid = (blockIdx.x * blockDim.x) + threadIdx.x;
 
 	            	for(int i = tid; i < 30000; i+=size)
 	            	{
         	        	curand_init(seed, i, 0, &state[i]);
-    	            	}
+    	            }
 	        }
 	}
     	"""
