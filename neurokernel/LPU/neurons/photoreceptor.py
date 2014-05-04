@@ -411,6 +411,7 @@ class Photoreceptor(BaseNeuron):
 
         # Gpot neuron Inputs/Outputs
         self.V = V
+        self.H_V = np.asarray(n_dict['Vinit'], dtype = np.double)
         self.SA = garray.to_gpu( np.asarray( n_dict['SA'], dtype=np.float64 ))
         self.SI = garray.to_gpu( np.asarray( n_dict['SI'], dtype=np.float64 ))
         self.DRA = garray.to_gpu( np.asarray( n_dict['DRA'], dtype=np.float64 ))
@@ -489,13 +490,17 @@ class Photoreceptor(BaseNeuron):
         self.I_HH = temp_I/15.7
 
         # Dirty way of debugging
-        print 'X_1: ', self.X_1
-        print 'X_2: ', self.X_2
-        print 'X_3: ', self.X_3
-        print 'X_4: ', self.X_4
-        print 'X_5: ', self.X_5
-        print 'X_6: ', self.X_6
-        print 'X_7: ', self.X_7
+        #print 'X_1: ', self.X_1
+        #print 'X_2: ', self.X_2
+        #print 'X_3: ', self.X_3
+        #print 'X_4: ', self.X_4
+        #print 'X_5: ', self.X_5
+        #print 'X_6: ', self.X_6
+        #print 'X_7: ', self.X_7
+
+        #printing V
+        cuda.memcpy_dtoh(self.H_V, int(self.V))
+        print self.H_V
 
         self.ca_dyn.prepared_async_call(\
                 self.gpu_grid,\
@@ -515,7 +520,7 @@ class Photoreceptor(BaseNeuron):
             self.num_neurons,\
             self.ddt * 1000,\
             self.V,\
-            self.I_HH.gpudata,\
+            self.I_HH,\ # we are passing it in as a double, not a pointer
             self.SA.gpudata,\
             self.SI.gpudata,\
             self.DRA.gpudata,\
