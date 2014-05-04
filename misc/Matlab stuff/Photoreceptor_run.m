@@ -104,8 +104,9 @@ print_V = [];
 print_I = [];
 print_X = [];
 print_Ca = [];
-for runtime = 1:100
+for runtime = 1:200
 %for ii = 1:30000
+
 LIC = zeros(1,n_m);
 for ii = 1:n_m
 
@@ -240,10 +241,11 @@ for ii = 1:n_m
 end
 
     LIC_tot = sum(LIC)/ 1e6 / 1.57e-5;
+    %LIC_tot = 0;
     %end
-    z = F_HHN([V_m, sa, si, dra, dri], LIC_tot);
+    z = F_HHN([V_m*1000, sa, si, dra, dri], LIC_tot);
     
-    V_m = V_m + z(1)*ddt;
+    V_m = V_m + z(1)*ddt/1000;
     sa = sa + z(2)*ddt;
     si = si + z(3)*ddt;
     dra = dra + z(4)*ddt;
@@ -308,7 +310,7 @@ xlim([0 runtime]);
 subplot(428);
 plot(print_Ca);
 title('Ca(2+)');
-ylim([0 0.8]);
+ylim([0 2]);
 xlim([0 runtime]);
 
 figure;
