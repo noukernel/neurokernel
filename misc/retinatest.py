@@ -32,10 +32,9 @@ conn[m0.id, 'all', :, m1.id, 'all', :] = np.ones((m0.N_gpot+m0.N_spike, m1.N_gpo
 
 
 G = nx.DiGraph()
-G.add_nodes_from([range(767)])
 
-for nn in range(767):
-
+for nn in range(6*768):
+    G.add_node(1)
     G.node[nn] = {
     'model': 'Photoreceptor',
     'name' : 'neuron_0' ,
