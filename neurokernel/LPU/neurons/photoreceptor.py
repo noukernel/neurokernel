@@ -520,7 +520,7 @@ class Photoreceptor(BaseNeuron):
             self.num_neurons,\
             self.ddt * 1000,\
             self.V,\
-            self.I_HH,\ # we are passing it in as a double, not a pointer
+            self.I_HH,\
             self.SA.gpudata,\
             self.SI.gpudata,\
             self.DRA.gpudata,\
