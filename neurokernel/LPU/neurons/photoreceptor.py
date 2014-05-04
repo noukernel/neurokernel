@@ -349,7 +349,7 @@ ca_dyn_src = """
 #define K_u 30
 #define C_T 903
 #define K_Ca 1000
-#define CaM_conc 0.5
+#define C_T_conc 0.5
 #define n_micro 30000.0
 
 __global__ void calcium_dynamics(
@@ -368,9 +368,12 @@ __global__ void calcium_dynamics(
     double I_CaNet;
     double f1;
     double f2;
+    double CaM_conc;
 
     for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
+
+	    CaM_conc = (C_T_conc - (C_star[nid]/(v*NA)*powf(10.0,12.0)));
 
             I_Ca = I_in[nid] * P_Ca;
             I_NaCa = K_NaCa * ( (powf(Na_i,3.0) * Ca_o) - (powf(Na_o,3.0) * Ca2[nid] * exp((-V_m[neu_num]*F) / (R*T))) );
