@@ -3,6 +3,7 @@ import networkx as nx
 import h5py
 from neurokernel.core import Manager
 from neurokernel.LPU.LPU import LPU
+from neurokernel.LPU.LPU_retina import LPU_retina
 from neurokernel.tools.comm import get_random_port
 from neurokernel.core import Module
 from neurokernel.core import Connectivity
@@ -33,7 +34,7 @@ conn[m0.id, 'all', :, m1.id, 'all', :] = np.ones((m0.N_gpot+m0.N_spike, m1.N_gpo
 
 G = nx.DiGraph()
 
-for nn in range(6*768):
+for nn in range(6*128):
     G.add_node(1)
     G.node[nn] = {
     'model': 'Photoreceptor',
