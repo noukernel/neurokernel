@@ -31,7 +31,7 @@ __global__ void hodgkin_huxley(
     %(type)s *DRI)
 {
     int bid = blockIdx.x;
-    int nid = (bid * NNEU) + threadIdx.x;
+    int nid = (bid * 128) + threadIdx.x;
 
     %(type)s v, i_ext, sa, si, dra, dri, ddt;
 
@@ -173,7 +173,7 @@ __global__ void signal_cascade(
 {
 
     int bid = blockIdx.x;
-    int tid = (bid * NNEU) + threadIdx.x;
+    int tid = threadIdx.x;
     %(type)s t_run = 0;
     int pois_num[1];
     int Np;
@@ -185,34 +185,34 @@ __global__ void signal_cascade(
     int mu;
     double av[12];
 
-    for(int nid = tid; nid < (n_micro * bid); nid += 512){
-        if (nid < (n_micro * bid)) {
+    for(int nid = tid; nid < n_micro; nid += 512){
+        if (nid < n_micro) {
 
-            gen_poisson_num(state, &pois_num[0], n_photon[nid]/n_micro);
+            gen_poisson_num(state, &pois_num[0], n_photon[nid + (n_micro * bid)]/n_micro);
             Np = pois_num[0];
-            X_1[nid] += Np;
+            X_1[nid + (n_micro * bid)] += Np;
 
             t_run = 0;
             while (t_run < dt) {
 
                 //18: reactant pairs - not concentrations??
-                h[0] = X_1[nid];
-                h[1] = X_1[nid]*X_2[nid];
-                h[2] = X_3[nid]*(PLCT - X_4[nid]);
-                h[3] = X_3[nid]*X_4[nid];
-                h[4] = GT-X_2[nid]-X_3[nid]-X_4[nid];
-                h[5] = X_4[nid];
-                h[6] = X_4[nid]; //NOT A TYPO
-                h[7] = X_5[nid];
-                h[8] = (X_5[nid]*(X_5[nid]-1)*(TT-X_7[nid]))/2.0;
-                h[9] = X_7[nid];
-                h[10] = (CTnum - X_6[nid])*Ca2[nid];
-                h[11] = X_6[nid];
+                h[0] = X_1[nid + (n_micro * bid)];
+                h[1] = X_1[nid + (n_micro * bid)]*X_2[nid + (n_micro * bid)];
+                h[2] = X_3[nid + (n_micro * bid)]*(PLCT - X_4[nid + (n_micro * bid)]);
+                h[3] = X_3[nid + (n_micro * bid)]*X_4[nid + (n_micro * bid)];
+                h[4] = GT-X_2[nid + (n_micro * bid)]-X_3[nid + (n_micro * bid)]-X_4[nid + (n_micro * bid)];
+                h[5] = X_4[nid + (n_micro * bid)];
+                h[6] = X_4[nid + (n_micro * bid)]; //NOT A TYPO
+                h[7] = X_5[nid + (n_micro * bid)];
+                h[8] = (X_5[nid + (n_micro * bid)]*(X_5[nid + (n_micro * bid)]-1)*(TT-X_7[nid + (n_micro * bid)]))/2.0;
+                h[9] = X_7[nid + (n_micro * bid)];
+                h[10] = (CTnum - X_6[nid + (n_micro * bid)])*Ca2[nid + (n_micro * bid)];
+                h[11] = X_6[nid + (n_micro * bid)];
 
                 //31
-                double fp = (powf((Ca2[nid]/Kp), mp)) / (1+powf((Ca2[nid]/Kp), mp));
+                double fp = (powf((Ca2[nid + (n_micro * bid)]/Kp), mp)) / (1+powf((Ca2[nid + (n_micro * bid)]/Kp), mp));
 
-                double C_star_conc = (X_6[nid]/(uVillusVolume*NA))*powf(10.0,12.0);
+                double C_star_conc = (X_6[nid + (n_micro * bid)]/(uVillusVolume*NA))*powf(10.0,12.0);
 
                 //32
                 double fn = ns * powf((C_star_conc/Kn), mn)/(1+(powf((C_star_conc/Kn), mn)));
@@ -252,56 +252,56 @@ __global__ void signal_cascade(
                     }
                 }
                 if(mu == 0) {
-                    X_1[nid] += -1;
+                    X_1[nid + (n_micro * bid)] += -1;
                 } else if (mu == 1){
-                    X_2[nid] += -1;
-                    X_3[nid] += 1;
+                    X_2[nid + (n_micro * bid)] += -1;
+                    X_3[nid + (n_micro * bid)] += 1;
                 } else if (mu == 2){
-                    X_3[nid] += -1;
-                    X_4[nid] += 1;
+                    X_3[nid + (n_micro * bid)] += -1;
+                    X_4[nid + (n_micro * bid)] += 1;
                 } else if (mu == 3){
-                    X_3[nid] += -1;
+                    X_3[nid + (n_micro * bid)] += -1;
                 } else if (mu == 4){
-                    X_2[nid] += 1;
+                    X_2[nid + (n_micro * bid)] += 1;
                 } else if (mu == 5){
-                    X_5[nid] += 1;
+                    X_5[nid + (n_micro * bid)] += 1;
                 } else if (mu == 6){
-                    X_4[nid] += -1;
+                    X_4[nid + (n_micro * bid)] += -1;
                 } else if (mu == 7){
-                    X_5[nid] += -1;
+                    X_5[nid + (n_micro * bid)] += -1;
                 } else if (mu == 8){
-                    X_5[nid] += -2;
-                    X_7[nid] += 1;
+                    X_5[nid + (n_micro * bid)] += -2;
+                    X_7[nid + (n_micro * bid)] += 1;
                 } else if (mu == 9){
-                    X_7[nid] += -1;
+                    X_7[nid + (n_micro * bid)] += -1;
                 } else if (mu == 10){
-                    X_6[nid] += 1;
+                    X_6[nid + (n_micro * bid)] += 1;
                 } else {
-                    X_6[nid] += -1;
+                    X_6[nid + (n_micro * bid)] += -1;
                 }
-                if(X_1[nid] < 0){
-                    X_1[nid] = 0;
+                if(X_1[nid + (n_micro * bid)] < 0){
+                    X_1[nid + (n_micro * bid)] = 0;
                 }
-                if(X_2[nid] < 0){
-                    X_2[nid] = 0;
+                if(X_2[nid + (n_micro * bid)] < 0){
+                    X_2[nid + (n_micro * bid)] = 0;
                 }
-                if(X_3[nid] < 0){
-                    X_3[nid] = 0;
+                if(X_3[nid + (n_micro * bid)] < 0){
+                    X_3[nid + (n_micro * bid)] = 0;
                 }
-                if(X_4[nid] < 0){
-                    X_4[nid] = 0;
+                if(X_4[nid + (n_micro * bid)] < 0){
+                    X_4[nid + (n_micro * bid)] = 0;
                 }
-                if(X_5[nid] < 0){
-                    X_5[nid] = 0;
+                if(X_5[nid + (n_micro * bid)] < 0){
+                    X_5[nid + (n_micro * bid)] = 0;
                 }
-                if(X_6[nid] < 0){
-                    X_6[nid] = 0;
+                if(X_6[nid + (n_micro * bid)] < 0){
+                    X_6[nid + (n_micro * bid)] = 0;
                 }
-                if(X_7[nid] < 0){
-                    X_7[nid] = 0;
+                if(X_7[nid + (n_micro * bid)] < 0){
+                    X_7[nid + (n_micro * bid)] = 0;
                 }
             }
-            I_in[nid] = Tcurrent*X_7[nid];
+            I_in[nid + (n_micro * bid)] = Tcurrent*X_7[nid + (n_micro * bid)];
         }
     }
     return;
@@ -345,7 +345,7 @@ __global__ void calcium_dynamics(
 	%(type)s *C_star)
 {
     int bid = blockIdx.x;
-    int tid = (bid * NNEU) + threadIdx.x;
+    int tid = threadIdx.x;
 
     double I_Ca;
     double I_NaCa;
@@ -354,13 +354,13 @@ __global__ void calcium_dynamics(
     double f2;
     double CaM_conc;
 
-    for(int nid = tid; nid < (n_micro * bid); nid += 512){
-        if (nid < (n_micro * bid)) {
+    for(int nid = tid; nid < n_micro; nid += 512){
+        if (nid < n_micro) {
 
-            CaM_conc = (C_T_conc - (C_star[nid]/(v*NA)*powf(10.0,12.0)));
+            CaM_conc = (C_T_conc - (C_star[nid + (n_micro * bid)]/(v*NA)*powf(10.0,12.0)));
 
-            I_Ca = I_in[nid] * P_Ca;
-            I_NaCa = K_NaCa * ( (powf(Na_i,3.0) * Ca_o) - (powf(Na_o,3.0) * Ca2[nid] * exp((-V_m[neu_num]*F) / (R*T))) );
+            I_Ca = I_in[nid + (n_micro * bid)] * P_Ca;
+            I_NaCa = K_NaCa * ( (powf(Na_i,3.0) * Ca_o) - (powf(Na_o,3.0) * Ca2[nid + (n_micro * bid)] * exp((-V_m[bid]*F) / (R*T))) );
 
             //36
             I_CaNet = I_Ca + 2*I_NaCa;
@@ -368,13 +368,13 @@ __global__ void calcium_dynamics(
             //41
             f1 = K_NaCa * powf(Na_i, 3.0)*Ca_o / (v*F);
             //42
-            f2 = (K_NaCa * exp((-V_m[neu_num]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
+            f2 = (K_NaCa * exp((-V_m[bid]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
 
             //40 (composed of 37,38,39)
-            Ca2[nid] = (I_CaNet/(2*v*F) + (n*K_r* ((C_star[nid]/(v*NA))*powf(10.0,12.0)) + f1))/(n*K_u*CaM_conc + K_Ca + f2);
+            Ca2[nid] = (I_CaNet/(2*v*F) + (n*K_r* ((C_star[nid + (n_micro * bid)]/(v*NA))*powf(10.0,12.0)) + f1))/(n*K_u*CaM_conc + K_Ca + f2);
 
-            if(Ca2[nid] < 0){
-                Ca2[nid] = 0;
+            if(Ca2[nid + (n_micro * bid)] < 0){
+                Ca2[nid + (n_micro * bid)] = 0;
             }
 
         }
