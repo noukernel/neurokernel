@@ -97,42 +97,42 @@ extern "C" {
 
 #define Kp 0.3
 #define Kn 0.18
-#define mp 2
-#define mn 3
-#define m 2
-#define hM 40
+#define mp 2.0
+#define mn 3.0
+#define m 2.0
+#define hM 40.0
 #define hPLC 11.1
 #define hD 37.8
 #define hTpos 11.5
-#define hTneg 10
-#define ArateG 7.05
-#define AratePLC 15.6
-#define ArateT 150
-#define ArateD 1300
-#define ArateK 100
-#define DrateM 3.7
-#define DrateG 3.5
-#define DratePLC 144
-#define DrateD 4
-#define DrateT 25
-#define DrateGAP 3
+#define hTneg 10.0
+#define Kappa_Gstar 7.05
+#define Kappa_PLCstar 15.6
+#define Kappa_Tstar 150.0
+#define Kappa_Dstar 1300.0
+#define K_Dstar 100.0
+#define Gamma_Mstar 3.7
+#define Gamma_G 3.5
+#define Gamma_PLCstar 144.0
+#define Gamma_Dstar 4.0
+#define Gamma_Tstar 25.0
+#define Gamma_GAP 3.0
 #define percCa 0.40
 #define Tcurrent 0.68
-#define NaConcExt 120
-#define NaConcInt 8
+#define NaConcExt 120.0
+#define NaConcInt 8.0
 #define CaConcExt 1.5
-#define CaConcInt 160
+#define CaConcInt 160.0
 #define CaMConcInt 0.5
-#define nBindingSites 4
-#define FaradayConst 96485
-#define AbsTemp 293
+#define nBindingSites 4.0
+#define FaradayConst 96485.0
+#define AbsTemp 293.0
 #define gasConst 8.314
-#define CaUptakeRate 30
+#define CaUptakeRate 30.0
 #define CaReleaseRate 5.5
-#define CaDiffusionRate 1000
+#define CaDiffusionRate 1000.0
 #define NaCaConst 3.0*powf(10.0, -8.0)
 #define membrCap 62.8
-#define ns 1 //assuming a dim background (would be 2 for bright)
+#define ns 2.0 //assuming a dim background (would be 2 for bright)
 #define PLCT 100
 #define GT 50
 #define TT 25
@@ -160,7 +160,7 @@ __global__ void signal_cascade(
     curandStateXORWOW_t* state,
     %(type)s *I,
     %(type)s *I_in,
-    %(type)s *V_m,
+    //%(type)s *V_m,
     %(type)s *n_photon,
     %(type)s *Ca2,
     %(type)s *X_1,
@@ -188,7 +188,7 @@ __global__ void signal_cascade(
     for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
 
-            gen_poisson_num(state, &pois_num[0], 1000/n_micro);
+            gen_poisson_num(state, &pois_num[0], 30/n_micro);
             Np = pois_num[0];
             X_1[nid] += Np;
 
@@ -217,16 +217,16 @@ __global__ void signal_cascade(
                 //32
                 double fn = ns * powf((C_star_conc/Kn), mn)/(1+(powf((C_star_conc/Kn), mn)));
 
-                c[0] = DrateM * (1 + (hM*fn) );
-                c[1] = ArateG;
-                c[2] = AratePLC;
-                c[3] = DrateGAP;
-                c[4] = DrateG;
-                c[5] = ArateD;
-                c[6] = DratePLC * (1 + (hPLC*fn) );
-                c[7] = DrateD*(1 + (hD*fn) );
-                c[8] = (ArateT*(1 + (hTpos*fp) ))/(ArateK*ArateK);
-                c[9] = DrateT*(1 + (hTneg*fn) );
+                c[0] = Gamma_Mstar * (1 + (hM*fn) );
+                c[1] = Kappa_Gstar;
+                c[2] = Kappa_PLCstar;
+                c[3] = Gamma_GAP;
+                c[4] = Gamma_G;
+                c[5] = Kappa_Dstar;
+                c[6] = Gamma_PLCstar * (1 + (hPLC*fn) );
+                c[7] = Gamma_Dstar*(1 + (hD*fn) );
+                c[8] = (Kappa_Tstar*(1 + (hTpos*fp) ))/(K_Dstar*K_Dstar);
+                c[9] = Gamma_Tstar*(1 + (hTneg*fn) );
                 c[10] = CaUptakeRate;
                 c[11] = CaReleaseRate;
 
