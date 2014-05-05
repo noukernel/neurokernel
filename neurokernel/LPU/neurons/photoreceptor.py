@@ -392,7 +392,7 @@ __global__ void calcium_dynamics(
     {
 	for (int ii = 1; ii < 16; ++ii)
 	{
-	    I_sum[tid] += I_sum[tid + i*32];
+	    I_sum[tid] += I_sum[tid + ii*32];
 	}
     }
     __syncthreads();
