@@ -30,6 +30,7 @@ __global__ void hodgkin_huxley(
     %(type)s *DRA,
     %(type)s *DRI)
 {
+    int bid = blockIdx.x;
     int nid = threadIdx.x + (bid * NNEU);
 
     %(type)s v, i_ext, sa, si, dra, dri, ddt;
@@ -463,7 +464,7 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata,\
                 self.X_7.gpudata)
 
-	    self.I_HH = garray.sum(self.I_in)
+        self.I_HH = garray.sum(self.I_in)
         print garray.sum(self.I_in)
 
 
