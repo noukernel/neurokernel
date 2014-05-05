@@ -172,7 +172,7 @@ __global__ void signal_cascade(
 {
 
     int bid = blockIdx.x;
-    int tid = bid * NNEU + threadIdx.x;
+    int tid = (bid * NNEU) + threadIdx.x;
     %(type)s t_run = 0;
     int pois_num[1];
     int Np;
@@ -344,7 +344,7 @@ __global__ void calcium_dynamics(
 	%(type)s *C_star)
 {
     int bid = blockIdx.x;
-    int tid = bid * NNEU + threadIdx.x;
+    int tid = (bid * NNEU) + threadIdx.x;
 
     double I_Ca;
     double I_NaCa;
@@ -408,19 +408,19 @@ class Photoreceptor(BaseNeuron):
         if 'photon_input' in n_dict:
             self.photon_input = garray.to_gpu( np.asarray( n_dict['photon_input'], dtype=np.float64 ))
         else:
-            self.photon_input = garray.to_gpu( np.ones( self.num_m, dtype=np.float64 ) * 30)
+            self.photon_input = garray.to_gpu( np.ones( self.num_m * self.num_neurons, dtype=np.float64 ) * 30)
         # Signal Cascade Inputs/Outputs
         # FIXME: Should I_in be the same as I?
-        self.I_in = garray.to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
-        self.Ca2 = garray.to_gpu( np.ones( self.num_m, dtype=np.float64 )* 0.00016)
+        self.I_in = garray.to_gpu( np.zeros(self.num_m * self.num_neurons, dtype=np.float64 ))
+        self.Ca2 = garray.to_gpu( np.ones( self.num_m * self.num_neurons, dtype=np.float64 )* 0.00016)
 
-        self.X_1 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
-        self.X_2 = garray.to_gpu( np.ones( self.num_m, dtype=np.float64 ) * 50)
-        self.X_3 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
-        self.X_4 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
-        self.X_5 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
-        self.X_6 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
-        self.X_7 = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
+        self.X_1 = garray.to_gpu( np.zeros( self.num_m * self.num_neurons, dtype=np.float64 ))
+        self.X_2 = garray.to_gpu( np.ones( self.num_m * self.num_neurons, dtype=np.float64 ) * 50)
+        self.X_3 = garray.to_gpu( np.zeros( self.num_m * self.num_neurons, dtype=np.float64 ))
+        self.X_4 = garray.to_gpu( np.zeros( self.num_m * self.num_neurons, dtype=np.float64 ))
+        self.X_5 = garray.to_gpu( np.zeros( self.num_m * self.num_neurons, dtype=np.float64 ))
+        self.X_6 = garray.to_gpu( np.zeros( self.num_m * self.num_neurons, dtype=np.float64 ))
+        self.X_7 = garray.to_gpu( np.zeros( self.num_m * self.num_neurons, dtype=np.float64 ))
         self.I_HH = garray.to_gpu( np.asarray( 0.0, dtype = np.float64 ))
 
         # No unique inputs/outputs for Calcium Dynamics
@@ -428,7 +428,7 @@ class Photoreceptor(BaseNeuron):
         # Copies an initial V into V
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
         self.gpu_block = (self.num_threads,1,1)
-        self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
+        self.gpu_grid = (self.num_neurons, 1)
         self.state = garray.empty(self.num_threads * 12, np.int32)
         self.rand = self.get_curand_int_func()
         self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, self.num_threads, np.uint64(2))
@@ -496,8 +496,8 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata) # X_6 is C_star
 
         self.update.prepared_async_call(\
-            (1,1),\
-            (self.num_neurons, 1,1),\
+            (128,1),\
+            ((self.num_neurons / 128) + 1, 1,1),\
             st,\
             self.num_neurons,\
             self.ddt * 1000,\
