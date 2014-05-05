@@ -187,7 +187,7 @@ __global__ void signal_cascade(
     for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
 
-            gen_poisson_num(state, &pois_num[0], 30.0/n_micro);
+            gen_poisson_num(state, &pois_num[0], n_photon[nid]/n_micro);
             Np = pois_num[0];
             X_1[nid] += Np;
 
@@ -405,7 +405,10 @@ class Photoreceptor(BaseNeuron):
         self.DRA = garray.to_gpu( np.asarray( n_dict['DRA'], dtype=np.float64 ))
         self.DRI = garray.to_gpu( np.asarray( n_dict['DRI'], dtype=np.float64 ))
 
-        self.n_photons = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
+        if 'photon_input' in n_dict:
+            self.photon_input = garray.to_gpu( np.asarray( n_dict['photon_input'], dtype=np.float64 ))
+        else:
+            self.photon_input = garray.to_gpu( np.ones( self.num_m, dtype=np.float64 ) * 30)
         # Signal Cascade Inputs/Outputs
         # FIXME: Should I_in be the same as I?
         self.I_in = garray.to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
@@ -454,7 +457,7 @@ class Photoreceptor(BaseNeuron):
                 self.I.gpudata,\
                 self.I_in.gpudata,\
                 self.V,\
-                self.n_photons.gpudata,\
+                self.photon_input.gpudata,\
                 self.Ca2.gpudata,\
                 self.X_1.gpudata,\
                 self.X_2.gpudata,\
@@ -521,7 +524,7 @@ class Photoreceptor(BaseNeuron):
                         np.intp,    # I
                         np.intp,   # I_in
                         np.intp,   # V_m
-                        np.intp,   # n_photon
+                        np.intp,   # photon_input
                         np.intp,   # Ca2
                         np.intp,   # X[1]
                         np.intp,   # X[2]
