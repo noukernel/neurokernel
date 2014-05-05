@@ -2,8 +2,8 @@ import argparse
 import numpy as np
 import networkx as nx
 import h5py
-from neurokernel.core import core
-from neurokernel.base import base
+import neurokernel.core as core
+import neurokernel.base as base
 from neurokernel.core import Manager
 from neurokernel.LPU.LPU import LPU
 from neurokernel.LPU.LPU_retina import LPU_retina
@@ -29,6 +29,7 @@ class MyModule(Module):
 dt = 1e-4
 dur = 1.0
 Nt = int(dur/dt)
+steps = Nt
 start = 0.3
 stop = 0.6
 I_max = 0.6

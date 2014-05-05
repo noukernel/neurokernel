@@ -30,7 +30,8 @@ __global__ void hodgkin_huxley(
     %(type)s *DRA,
     %(type)s *DRI)
 {
-    int nid = threadIdx.x;
+    int bid = blockIdx.x;
+    int nid = (bid * NNEU) + threadIdx.x;
 
     %(type)s v, i_ext, sa, si, dra, dri, ddt;
 
