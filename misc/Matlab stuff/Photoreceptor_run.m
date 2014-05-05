@@ -243,15 +243,20 @@ end
     LIC_tot = sum(LIC)/ 1e6 / 1.57e-5;
     %LIC_tot = 0;
     %end
-    z = F_HHN([V_m*1000, sa, si, dra, dri], LIC_tot);
+    for i = 1:10
+        dddt = ddt/10;
+        
+        z = F_HHN([V_m*1000, sa, si, dra, dri], LIC_tot);
     
-    V_m = V_m + z(1)*ddt/1000;
-    sa = sa + z(2)*ddt;
-    si = si + z(3)*ddt;
-    dra = dra + z(4)*ddt;
-    dri = dri + z(5)*ddt;
+        V_m = V_m + z(1)*dddt;
+        sa = sa + z(2)*dddt;
+        si = si + z(3)*dddt;
+        dra = dra + z(4)*dddt;
+        dri = dri + z(5)*dddt;
     
-    print_V = [print_V V_m];
+        print_V = [print_V V_m];
+    end
+    
     print_I = [print_I LIC_tot];
     print_Ca = [print_Ca Ca2(1)];
     
@@ -268,25 +273,25 @@ figure('Position',[10 30 600 400]);
 subplot(421);
 plot(print_X(1,:));
 xlim([0 runtime]);
-%ylim([0 1]);
+ylim([0 2]);
 title('M*');
 
 subplot(423);
 plot(print_X(2,:));
 title('G');
-ylim([0 50]);
+ylim([0 60]);
 xlim([0 runtime]);
 
 subplot(425);
 plot(print_X(3,:));
 title('G*');
-%ylim([0 1]);
+ylim([0 3]);
 xlim([0 runtime]);
 
 subplot(427);
 plot(print_X(4,:));
 title('PLC*');
-%ylim([0 2]);
+ylim([0 3]);
 xlim([0 runtime]);
 
 subplot(422);
@@ -298,24 +303,25 @@ xlim([0 runtime]);
 subplot(424);
 plot(print_X(6,:));
 title('C*');
-ylim([0 60]);
+%ylim([0 60]);
 xlim([0 runtime]);
 
 subplot(426);
 plot(print_X(7,:));
 title('T*');
-%ylim([0 25]);
+ylim([0 5]);
 xlim([0 runtime]);
 
 subplot(428);
 plot(print_Ca);
 title('Ca(2+)');
-ylim([0 2]);
+%ylim([0 2]);
 xlim([0 runtime]);
 
 figure;
-subplot(211);
+%subplot(211);
 plot(print_V);
 
-subplot(212);
+figure;
+%subplot(212);
 plot(print_I);
