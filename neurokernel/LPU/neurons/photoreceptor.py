@@ -185,8 +185,8 @@ __global__ void signal_cascade(
     int mu;
     double av[12];
 
-    for(int nid = tid; nid < n_micro; nid += 512){
-        if (nid < n_micro) {
+    for(int nid = tid; nid < (n_micro * bid); nid += 512){
+        if (nid < (n_micro * bid)) {
 
             gen_poisson_num(state, &pois_num[0], n_photon[nid]/n_micro);
             Np = pois_num[0];
@@ -354,8 +354,8 @@ __global__ void calcium_dynamics(
     double f2;
     double CaM_conc;
 
-    for(int nid = tid; nid < n_micro; nid += 512){
-        if (nid < n_micro) {
+    for(int nid = tid; nid < (n_micro * bid); nid += 512){
+        if (nid < (n_micro * bid)) {
 
             CaM_conc = (C_T_conc - (C_star[nid]/(v*NA)*powf(10.0,12.0)));
 
