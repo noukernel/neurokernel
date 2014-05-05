@@ -193,40 +193,31 @@ __global__ void signal_cascade(
 
             gen_poisson_num(state, &pois_num[0], n_photon[0]/n_micro);
             Np = pois_num[0];
-
-           //16: state vector:
-            double X1 = Np;
-            double X2 = X_2[nid];
-            double X3 = X_3[nid];
-            double X4 = X_4[nid];
-            double X5 = X_5[nid];
-            double X6 = X_6[nid];
-            double X7 = X_7[nid];
+            X_1[nid] += Np;
 
             max_run = 0;
             t_run = 0;
             while ((t_run < dt) && (max_run < MAX_RUN)) {
                 max_run += 1;
-                I_in[nid] = Tcurrent*X7;
 
                 //18: reactant pairs - not concentrations??
-                h[0] = X1;
-                h[1] = X1*X2;
-                h[2] = X3*(PLCT - X4);
-                h[3] = X3*X4;
-                h[4] = GT-X2-X3-X4;
-                h[5] = X4;
-                h[6] = X4; //NOT A TYPO
-                h[7] = X5;
-                h[8] = (X5*(X5-1)*(TT-X7))/2;
-                h[9] = X7;
-                h[10] = (CTnum - X6)*Ca2[nid];
-                h[11] = X6;
+                h[0] = X_1[nid];
+                h[1] = X_1[nid]*X_2[nid];
+                h[2] = X_3[nid]*(PLCT - X_4[nid]);
+                h[3] = X_3[nid]*X_4[nid];
+                h[4] = GT-X_2[nid]-X_3[nid]-X_4[nid];
+                h[5] = X_4[nid];
+                h[6] = X_4[nid]; //NOT A TYPO
+                h[7] = X_5[nid];
+                h[8] = (X_5[nid]*(X_5[nid]-1)*(TT-X_7[nid]))/2;
+                h[9] = X_7[nid];
+                h[10] = (CTnum - X_6[nid])*Ca2[nid];
+                h[11] = X_6[nid];
 
                 //31
                 double fp = (powf((Ca2[nid]/Kp), mp)) / (1+powf((Ca2[nid]/Kp), mp));
 
-                double C_star_conc = (X6/(uVillusVolume*NA))*powf(10.0,12.0);
+                double C_star_conc = (X_6[nid]/(uVillusVolume*NA))*powf(10.0,12.0);
 
                 //32
                 double fn = ns * powf((C_star_conc/Kn), mn)/(1+(powf((C_star_conc/Kn), mn)));
