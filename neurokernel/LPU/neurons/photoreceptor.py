@@ -303,6 +303,7 @@ __global__ void signal_cascade(
                 }
             }
             I_in[nid + (n_micro * bid)] = Tcurrent*X_7[nid + (n_micro * bid)];
+	    
         }
     }
     return;
@@ -355,6 +356,8 @@ __global__ void calcium_dynamics(
     double f1;
     double f2;
     double CaM_conc;
+    __shared__ double I_sum[512];
+
 
     for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
@@ -379,7 +382,29 @@ __global__ void calcium_dynamics(
                 Ca2[nid + (n_micro * bid)] = 0;
             }
 
+	    I_sum[tid] += I_in[nid + (n_micro*bid)];
+
         }
+    }
+    __syncthreads();
+
+    if (tid < 32)
+    {
+	for (int ii = 1; ii < 16; ++ii)
+	{
+	    I_sum[tid] += I_sum[tid + i*32];
+	}
+    }
+    __syncthreads();
+
+    if (tid == 0)
+    {
+	for (int ii = 1; ii < 32; ++ii)
+	{
+	    I_sum[tid] += I_sum[ii];
+	}
+
+    	I[bid] = I_sum[tid];
     }
     return;
 }
@@ -424,7 +449,7 @@ class Photoreceptor(BaseNeuron):
         self.X_5 = garray.to_gpu( np.zeros( self.num_m * self.num_neurons, dtype=np.float64 ))
         self.X_6 = garray.to_gpu( np.zeros( self.num_m * self.num_neurons, dtype=np.float64 ))
         self.X_7 = garray.to_gpu( np.zeros( self.num_m * self.num_neurons, dtype=np.float64 ))
-        self.I_HH = garray.to_gpu( np.asarray( 0.0, dtype = np.float64 ))
+        self.I_HH = garray.to_gpu( np.zeros( self.num_neurons, dtype = np.float64 ))
 
         # No unique inputs/outputs for Calcium Dynamics
 
@@ -470,8 +495,8 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata,\
                 self.X_7.gpudata)
 
-        self.I_HH = garray.sum(self.I_in)
-        print garray.sum(self.I_in) / 15.7
+        #self.I_HH = garray.sum(self.I_in)
+        #print garray.sum(self.I_in) / 15.7
 
 
         # Dirty way of debugging
@@ -495,7 +520,7 @@ class Photoreceptor(BaseNeuron):
                 self.I_in.gpudata,\
                 self.Ca2.gpudata,\
                 self.V,\
-                self.I.gpudata,\
+                self.I_HH.gpudata,\
                 self.X_6.gpudata) # X_6 is C_star
 
         self.update.prepared_async_call(\
