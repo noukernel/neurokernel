@@ -497,8 +497,8 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata) # X_6 is C_star
 
         self.update.prepared_async_call(\
-            (128,1),\
-            ((self.num_neurons / 128) + 1, 1,1),\
+            ((self.num_neurons / 128) + 1,1),\
+            (128, 1, 1),\
             st,\
             self.num_neurons,\
             self.ddt * 1000,\
