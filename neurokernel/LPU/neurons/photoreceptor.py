@@ -30,8 +30,7 @@ __global__ void hodgkin_huxley(
     %(type)s *DRA,
     %(type)s *DRI)
 {
-    int bid = blockIdx.x;
-    int nid = threadIdx.x + (bid * NNEU);
+    int nid = threadIdx.x;
 
     %(type)s v, i_ext, sa, si, dra, dri, ddt;
 
@@ -396,6 +395,7 @@ class Photoreceptor(BaseNeuron):
         self.ddt = dt / self.steps
 
         self.num_m = 30000 # number microvilii
+        self.num_threads = 512
 
         # Gpot neuron Inputs/Outputs
         self.V = V
@@ -424,11 +424,11 @@ class Photoreceptor(BaseNeuron):
 
         # Copies an initial V into V
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
-        self.gpu_block = (512,1,1)
+        self.gpu_block = (self.num_threads,1,1)
         self.gpu_grid = ((self.num_neurons - 1) / self.gpu_block[0] + 1, 1)
-        self.state = garray.empty(self.num_m * 12, np.int32)
+        self.state = garray.empty(self.num_threads * 12, np.int32)
         self.rand = self.get_curand_int_func()
-        self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, 2*self.num_m, np.uint64(2))
+        self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, self.num_threads, np.uint64(2))
 
         self.sig_cas = self.get_sig_cas_kernel()
         self.ca_dyn = self.get_ca_dyn_kernel()
@@ -493,8 +493,8 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata) # X_6 is C_star
 
         self.update.prepared_async_call(\
-            self.gpu_grid,\
-            self.gpu_block,\
+            (1,1),\
+            (self.num_neurons, 1,1),\
             st,\
             self.num_neurons,\
             self.ddt * 1000,\
