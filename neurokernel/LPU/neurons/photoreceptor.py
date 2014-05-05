@@ -93,7 +93,8 @@ extern "C" {
 
 #define NA 6.02*powf(10.0,23.0)
 #define uVillusVolume 3.0*powf(10.0, -9.0)
-#define n_micro 30000.0
+#define n_microf 30000.0
+#define n_micro 30000
 
 #define Kp 0.3
 #define Kn 0.18
@@ -142,7 +143,7 @@ extern "C" {
 
 __device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
 {
-	int tid = threadIdx.x + blockIdx.x*blockDim.x;
+    int tid = threadIdx.x + (blockIdx.x*blockDim.x);
 	
 	output[0] = curand_uniform(&state[tid]);
 	output[1] = curand_uniform(&state[tid]); 
@@ -150,7 +151,7 @@ __device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
 
 __device__ void gen_poisson_num(curandStateXORWOW_t *state, int* output, double lambda)
 {
-    int tid = (blockIdx.x * NNEU) + threadIdx.x;
+    int tid = threadIdx.x + (blockIdx.x*blockDim.x);
 	output[0] = curand_poisson(&state[tid], lambda);
 }
 
@@ -188,7 +189,7 @@ __global__ void signal_cascade(
     for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
 
-            gen_poisson_num(state, &pois_num[0], n_photon[nid + (n_micro * bid)]/n_micro);
+            gen_poisson_num(state, &pois_num[0], n_photon[nid + (n_micro * bid)]/n_microf);
             Np = pois_num[0];
             X_1[nid + (n_micro * bid)] += Np;
 
@@ -334,7 +335,8 @@ ca_dyn_src = """
 #define C_T 903
 #define K_Ca 1000
 #define C_T_conc 0.5
-#define n_micro 30000.0
+#define n_microf 30000.0
+#define n_micro 30000
 
 __global__ void calcium_dynamics(
     int neu_num,
@@ -430,7 +432,7 @@ class Photoreceptor(BaseNeuron):
         cuda.memcpy_htod(int(self.V), np.asarray(n_dict['Vinit'], dtype=np.double))
         self.gpu_block = (self.num_threads,1,1)
         self.gpu_grid = (self.num_neurons, 1)
-        self.state = garray.empty(self.num_threads * 12, np.int32)
+        self.state = garray.empty(self.num_threads * self.num_neurons * 12, np.int32)
         self.rand = self.get_curand_int_func()
         self.rand.prepared_async_call(self.gpu_grid, self.gpu_block, None, self.state.gpudata, self.num_threads, np.uint64(2))
 
