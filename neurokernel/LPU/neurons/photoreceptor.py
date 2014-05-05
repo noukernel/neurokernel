@@ -477,11 +477,14 @@ class Photoreceptor(BaseNeuron):
                 self.X_6.gpudata,\
                 self.X_7.gpudata)
 
-        temp_I = 0
-        for ii in xrange(1, len(self.I_in)):
-            temp_I += self.I_in[ii]
+        #temp_I = 0
+        #for ii in xrange(1, len(self.I_in)):
+        #    temp_I += self.I_in[ii]
 
-        self.I_HH = temp_I/15.7
+        #self.I_HH = temp_I/15.7
+	self.I_HH = garray.sum(self.I_in)
+        print garray.sum(self.I_in)
+
 
         # Dirty way of debugging
         #print 'X_1: ', self.X_1
