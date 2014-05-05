@@ -30,19 +30,18 @@ __global__ void hodgkin_huxley(
     %(type)s *DRA,
     %(type)s *DRI)
 {
-    int bid = blockIdx.x;
-    int nid = bid;
+    int nid = threadIdx.x + (bid * NNEU);
 
     %(type)s v, i_ext, sa, si, dra, dri, ddt;
 
     if( nid < neu_num ){
-        v = V[nid];
-        i_ext = I[nid];
+        v = V[nid] * 1000;
+        i_ext = I[nid] / 15.7;
         sa = SA[nid];
         si = SI[nid];
         dra = DRA[nid];
         dri = DRI[nid];
-	ddt = dt/10;
+        ddt = dt/10;
 
 	for(int run_dmc = 0; run_dmc < 10; ++run_dmc)
 	{
@@ -75,7 +74,7 @@ __global__ void hodgkin_huxley(
 	SI[nid] = si;
 	DRA[nid] = dra;
 	DRI[nid] = dri;
-	V[nid] = v;
+	V[nid] = v / 1000;
     }
     return;
 }
@@ -140,8 +139,6 @@ extern "C" {
 #define CTnum 903
 #define la 0.5
 
-#define MAX_RUN 20
-
 __device__ void gen_rand_num(curandStateXORWOW_t *state, double* output)
 {
 	int tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -179,7 +176,6 @@ __global__ void signal_cascade(
     %(type)s t_run = 0;
     int pois_num[1];
     int Np;
-    int max_run;
     double h[12];
     double c[12];
     double a[12];
@@ -191,14 +187,12 @@ __global__ void signal_cascade(
     for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
 
-            gen_poisson_num(state, &pois_num[0], n_photon[0]/n_micro);
+            gen_poisson_num(state, &pois_num[0], 1000/n_micro);
             Np = pois_num[0];
             X_1[nid] += Np;
 
-            max_run = 0;
             t_run = 0;
-            while ((t_run < dt) && (max_run < MAX_RUN)) {
-                max_run += 1;
+            while (t_run < dt) {
 
                 //18: reactant pairs - not concentrations??
                 h[0] = X_1[nid];
@@ -284,30 +278,28 @@ __global__ void signal_cascade(
                 } else {
                     X_6[nid] += -1;
                 }
+                if(X_1[nid] < 0){
+                    X_1[nid] = 0;
+                }
+                if(X_2[nid] < 0){
+                    X_2[nid] = 0;
+                }
+                if(X_3[nid] < 0){
+                    X_3[nid] = 0;
+                }
+                if(X_4[nid] < 0){
+                    X_4[nid] = 0;
+                }
+                if(X_5[nid] < 0){
+                    X_5[nid] = 0;
+                }
+                if(X_6[nid] < 0){
+                    X_6[nid] = 0;
+                }
+                if(X_7[nid] < 0){
+                    X_7[nid] = 0;
+                }
             }
-
-            if(X_1[nid] < 0){
-                X_1[nid] = 0;
-            }
-            if(X_2[nid] < 0){
-                X_2[nid] = 0;
-            }
-            if(X_3[nid] < 0){
-                X_3[nid] = 0;
-            }
-            if(X_4[nid] < 0){
-                X_4[nid] = 0;
-            }
-            if(X_5[nid] < 0){
-                X_5[nid] = 0;
-            }
-            if(X_6[nid] < 0){
-                X_6[nid] = 0;
-            }
-            if(X_7[nid] < 0){
-                X_7[nid] = 0;
-            }
-
             I_in[nid] = Tcurrent*X_7[nid];
         }
     }
@@ -364,7 +356,7 @@ __global__ void calcium_dynamics(
     for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
 
-	    CaM_conc = (C_T_conc - (C_star[nid]/(v*NA)*powf(10.0,12.0)));
+            CaM_conc = (C_T_conc - (C_star[nid]/(v*NA)*powf(10.0,12.0)));
 
             I_Ca = I_in[nid] * P_Ca;
             I_NaCa = K_NaCa * ( (powf(Na_i,3.0) * Ca_o) - (powf(Na_o,3.0) * Ca2[nid] * exp((-V_m[neu_num]*F) / (R*T))) );
@@ -380,9 +372,10 @@ __global__ void calcium_dynamics(
             //40 (composed of 37,38,39)
             Ca2[nid] = (I_CaNet/(2*v*F) + (n*K_r* ((C_star[nid]/(v*NA))*powf(10.0,12.0)) + f1))/(n*K_u*CaM_conc + K_Ca + f2);
 
-            //I[nid] += I_in[nid];
-    
-            //I[nid] = I[neu_num] * pow(10, 5);
+            if(Ca2[nid] < 0){
+                Ca2[nid] = 0;
+            }
+
         }
     }
     return;
@@ -411,14 +404,7 @@ class Photoreceptor(BaseNeuron):
         self.DRA = garray.to_gpu( np.asarray( n_dict['DRA'], dtype=np.float64 ))
         self.DRI = garray.to_gpu( np.asarray( n_dict['DRI'], dtype=np.float64 ))
 
-        # FIXME: Make clean, actually use input file or something.
-        # RPAM Inputs/Outputs
-        self.n_photons = garray.to_gpu( np.asarray( random.randint(100,999), dtype=np.float64 ))
-
-        #r_n = np.array(range(self.num_m))
-        #np.random.shuffle( r_n )
-        #self.rand_index = garray.to_gpu( r_n )
-
+        self.n_photons = garray.to_gpu( np.zeros( self.num_m, dtype=np.float64 ))
         # Signal Cascade Inputs/Outputs
         # FIXME: Should I_in be the same as I?
         self.I_in = garray.to_gpu( np.zeros(self.num_m, dtype=np.float64 ))
