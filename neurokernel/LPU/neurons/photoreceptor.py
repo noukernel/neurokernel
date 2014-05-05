@@ -159,7 +159,7 @@ __global__ void signal_cascade(
     curandStateXORWOW_t* state,
     %(type)s *I,
     %(type)s *I_in,
-    //%(type)s *V_m,
+    %(type)s *V_m,
     %(type)s *n_photon,
     %(type)s *Ca2,
     %(type)s *X_1,
