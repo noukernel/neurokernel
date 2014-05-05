@@ -357,10 +357,9 @@ __global__ void calcium_dynamics(
     double f2;
     double CaM_conc;
     __shared__ double I_sum[512];
-
+    I_sum[tid] = 0;
 
     for(int nid = tid; nid < n_micro; nid += 512){
-        I_sum[tid] = 0;
         if (nid < n_micro) {
 
             CaM_conc = (C_T_conc - (C_star[nid + (n_micro * bid)]/(v*NA)*powf(10.0,12.0)));
