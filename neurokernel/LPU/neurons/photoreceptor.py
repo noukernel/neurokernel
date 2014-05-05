@@ -48,7 +48,7 @@ __global__ void hodgkin_huxley(
 
         	%(type)s inf, tau;
         	// Calculate d_sa
-       		inf = powf(1 / (1 + exp( (-30-v) / 13.5)) , 1/3);
+       		inf = powf(1 / (1 + exp( (-30-v) / 13.5)) , 1.0/3.0);
         	tau = 0.13 + 3.39 * exp( -powf((-73-v),2) / powf(20,2) );
         	sa = sa + ((inf - sa) / tau) * ddt;
 
@@ -74,7 +74,7 @@ __global__ void hodgkin_huxley(
 	SI[nid] = si;
 	DRA[nid] = dra;
 	DRI[nid] = dri;
-	V[nid] = v / 1000;
+	V[nid] = v / 1000.0;
     }
     return;
 }
@@ -187,7 +187,7 @@ __global__ void signal_cascade(
     for(int nid = tid; nid < n_micro; nid += 512){
         if (nid < n_micro) {
 
-            gen_poisson_num(state, &pois_num[0], 30/n_micro);
+            gen_poisson_num(state, &pois_num[0], 30.0/n_micro);
             Np = pois_num[0];
             X_1[nid] += Np;
 
@@ -203,7 +203,7 @@ __global__ void signal_cascade(
                 h[5] = X_4[nid];
                 h[6] = X_4[nid]; //NOT A TYPO
                 h[7] = X_5[nid];
-                h[8] = (X_5[nid]*(X_5[nid]-1)*(TT-X_7[nid]))/2;
+                h[8] = (X_5[nid]*(X_5[nid]-1)*(TT-X_7[nid]))/2.0;
                 h[9] = X_7[nid];
                 h[10] = (CTnum - X_6[nid])*Ca2[nid];
                 h[11] = X_6[nid];
@@ -465,7 +465,7 @@ class Photoreceptor(BaseNeuron):
                 self.X_7.gpudata)
 
         self.I_HH = garray.sum(self.I_in)
-        print garray.sum(self.I_in)
+        print garray.sum(self.I_in) / 15.7
 
 
         # Dirty way of debugging
@@ -517,7 +517,7 @@ class Photoreceptor(BaseNeuron):
         func = mod.get_function("signal_cascade")
         func.prepare( [ np.int32, # neu_num
                         np.float64, # dt
-			np.intp, # rand state
+                        np.intp, # rand state
                         np.intp,    # I
                         np.intp,   # I_in
                         np.intp,   # V_m
@@ -570,19 +570,14 @@ class Photoreceptor(BaseNeuron):
     
     def get_curand_int_func(self):
 	code = """
-	#include "curand_kernel.h"
-	extern "C" {
-		__global__ void 
-	        rand_setup(curandStateXORWOW_t* state, int size, unsigned long long seed)
-	        {
-                    int tid = (blockIdx.x * blockDim.x) + threadIdx.x;
-
-	            	for(int i = tid; i < 30000; i+=size)
-	            	{
-        	        	curand_init(seed, i, 0, &state[i]);
-    	            }
-	        }
-	}
+    #include "curand_kernel.h"
+    extern "C" {
+        __global__ void rand_setup(curandStateXORWOW_t* state, int size, unsigned long long seed)
+        {
+            int tid = threadIdx.x;
+            curand_init(seed, tid, 0, &state[tid]);
+        }
+    }
     	"""
     	mod = SourceModule(code, no_extern_c = True)
     	func = mod.get_function("rand_setup")
