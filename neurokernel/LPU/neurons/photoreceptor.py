@@ -376,7 +376,7 @@ __global__ void calcium_dynamics(
             f2 = (K_NaCa * exp((-V_m[bid]*F)/(R*T)) * powf(Na_o,3.0))/(v*F);
 
             //40 (composed of 37,38,39)
-            Ca2[nid] = (I_CaNet/(2*v*F) + (n*K_r* ((C_star[nid + (n_micro * bid)]/(v*NA))*powf(10.0,12.0)) + f1))/(n*K_u*CaM_conc + K_Ca + f2);
+            Ca2[nid + (n_micro*bid)] = (I_CaNet/(2*v*F) + (n*K_r* ((C_star[nid + (n_micro * bid)]/(v*NA))*powf(10.0,12.0)) + f1))/(n*K_u*CaM_conc + K_Ca + f2);
 
             if(Ca2[nid + (n_micro * bid)] < 0){
                 Ca2[nid + (n_micro * bid)] = 0;
