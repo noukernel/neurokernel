@@ -14,8 +14,8 @@
 %         4   x         x         x
 %                  x         x         x
 % The above diagram defines ncols = 6 and nrows = 4
-nrows = 2;
-ncols = 4;
+nrows = 8;
+ncols = 16;
 
 %% other setting
 
